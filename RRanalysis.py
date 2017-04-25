@@ -4,7 +4,7 @@ Created on Wed Apr 12 13:19:22 2017
 
 RedRed Analysis
 
-@author: sagustss
+@author: S.Y.Agustsson
 """
 from scipy import signal
 from scipy import io
