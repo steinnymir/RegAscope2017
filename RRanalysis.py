@@ -67,7 +67,7 @@ def rr_dictionary(sourceDirectory, fileRange = [0,0], save = True,
 
 def rr_plot(dataDict, saveName):
     """Plot all curves in the dataDict dictionary and use keys as labels"""
-    fig=plt.figure(saveName)
+    fig = plt.figure(saveName, figsize = (10,20))
     plt.clf()
     ax1 = fig.add_subplot(111)
     
