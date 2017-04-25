@@ -6,22 +6,20 @@ RedRed Analysis, a first try!
 
 @author: S.Y.Agustsson, V.Yu. Grigorev
 """
-from scipy import signal
-from scipy import io
-import scipy
-import matplotlib.pyplot as plt
+import scipy as sp
 import numpy as np
-from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
 from matplotlib import cm
 import os
-from datetime import datetime
 import re
-
+from datetime import datetime
 
 #%%  function definitions
 def rr_import(Filename, fltrOrder = 2, fltrCut = 0.1, timeZero = 0):
+    
     """import redred data and apply lowpass filter"""
-    MData = io.loadmat(Filename)    #load matlab file
+    
+    MData = sp.io.loadmat(Filename)    #load matlab file
     Data = MData['Daten']           # Pick data with dark control
     d=Data[0]                       
     shift=np.average(d[7460:7500:1])    #shift zero to pre-pump value
@@ -30,19 +28,21 @@ def rr_import(Filename, fltrOrder = 2, fltrCut = 0.1, timeZero = 0):
     timeShift = max(Data[2]) - timeZero
     Time = -Data[2] + timeShift #+ Data[2,np.argmin(-Data[0])]
 
-    b, a = signal.butter(fltrOrder, fltrCut, 'low', analog= False)
-    filtered_trace=signal.lfilter(b,a,trace)
+    b, a = sp.signal.butter(fltrOrder, fltrCut, 'low', analog= False)
+    filtered_trace = sp.signal.lfilter(b,a,trace)
    # plt.plot(Time,filtered_trace)
     return(Time,filtered_trace)
 
 
-def rr_dictionary(sourceDirectory, fileRange = [0,0], save = True, fltrOrder = 2, fltrCut = 0.1, timeZero = 0):
+def rr_dictionary(sourceDirectory, fileRange = [0,0], save = True, 
+                  fltrOrder = 2, fltrCut = 0.1, timeZero = 0):
     """Generate a Dictionary and save transformed data"""
     
     if fileRange == [0,0]:
         fileRange[1] = len(sourceDirectory)
     saveName = os.path.basename(sourceDirectory)
-    fileNames=os.listdir(sourceDirectory)[fileRange[0]:fileRange[1]] # pick scans to work on
+        # pick scans to work on
+    fileNames=os.listdir(sourceDirectory)[fileRange[0]:fileRange[1]] 
     data = []
     countGood = 0
     countBad = 0
@@ -50,14 +50,16 @@ def rr_dictionary(sourceDirectory, fileRange = [0,0], save = True, fltrOrder = 2
         ext = os.path.splitext(item)[-1].lower()
         if ext == ".mat":
             countGood += 1
-            D = rr_import(sourceDirectory + '//' + item, fltrOrder, fltrCut, timeZero) # import scan data
+            D = rr_import(sourceDirectory + '//' + item, 
+                          fltrOrder, fltrCut, timeZero) # import scan data
             d = np.array(D) #data to array
-            data.append(['T_' + item[0:-4], d]) #add label and data for dictionary - Matlab export
+             # add label and data for dictionary - Matlab export
+            data.append(['T_' + item[0:-4], d])
         else: countBad += 1
     dataDict = dict(data) # Transform to dictionary
     print(str(countGood) + " files used\n" + str(countBad) + " files were ignored.")
-    if save:
-        io.savemat(saveName + '_FilteredData', mdict=dataDict) # save as matlab file in targetDirectory
+    if save:  # save as matlab file in targetDirectory
+        sp.io.savemat(saveName + '_FilteredData', mdict=dataDict)
         print('Saved as ' + saveName + '_FilteredData')
     else: print('not Saved')
     return(dataDict)
@@ -181,7 +183,10 @@ def file_creation_date(file):
 
 
 def fitFunction(t,taupulse,taudecay,linearconst,A,C,t_zero):
-    return  A*(-np.exp(taupulse**2/(8*taudecay**2))*(np.exp(-t/taudecay))+linearconst*t + C)*(1+scipy.special.erf(((2**0.5)*(t+t_zero-(taupulse**2/(4*taudecay))))/taupulse))
+    return  (A*(-np.exp(taupulse**2/(8*taudecay**2)) * 
+            (np.exp(-t/taudecay))+linearconst*t + C) * 
+            (1+sp.special.erf(((2**0.5) * 
+            (t+t_zero-(taupulse**2/(4*taudecay))))/taupulse)))
 
 
 def fitRedRed(trace1):
@@ -190,7 +195,7 @@ def fitRedRed(trace1):
     guess=( 0.01,1.68,0.1,0.4,-0.27,0.2)
     #       t,taupulse,taudecay,linearconst,A,C,t_zero
     plt.plot(Time,trace)
-    popt, pcov = scipy.optimize.curve_fit(fitFunction,Time,trace,p0=guess)
+    popt, pcov = sp.optimize.curve_fit(fitFunction,Time,trace,p0=guess)
     popt=1
     #fig=plt.figure('fittings')
     #plt.clf()
@@ -202,8 +207,8 @@ def fitRedRed(trace1):
 
 
 def fftRedRed(trace, Time):
-    freq=scipy.fftpack.fftfreq(trace.size,np.abs((Time[0]-Time[:1])/Time.size))
-    FFT = abs(scipy.fft(trace))
+    freq=sp.fftpack.fftfreq(trace.size,np.abs((Time[0]-Time[:1])/Time.size))
+    FFT = abs(sp.fft(trace))
     plt.plot(freq, FFT)
     
 #%% 
