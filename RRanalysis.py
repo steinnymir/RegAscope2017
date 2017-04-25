@@ -2,7 +2,7 @@
 """
 Created on Wed Apr 12 13:19:22 2017
 
-RedRed Analysis
+RedRed Analysis, a first try!
 
 @author: S.Y.Agustsson, V.Yu. Grigorev
 """
