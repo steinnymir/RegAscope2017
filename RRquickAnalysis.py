@@ -8,7 +8,7 @@ Created on Tue Apr 25 13:45:12 2017
 from functionlibrary import redred as rr
 
 #import os
-#import numpy as np
+import numpy as np
 #import scipy as sp
 #GUI
 #from pyqtgraph.Qt import QtGui, QtCore
@@ -46,7 +46,7 @@ dataDict = rr.dir_to_dict(testpath, fileRange = fileRange)
 #gui1 = win.addPlot(title='Temperature Dependence')
 ##
 
-#%% initialise regualr plot
+#%% initialize regualr plot
 fig = plt.figure(Title, figsize = (19,10))
 plt.clf()
 plt1 = fig.add_subplot(111)
@@ -60,8 +60,6 @@ color=iter(cm.rainbow(np.linspace(0,1,len(dataDict))))
 
 #%% analysis program
 #just plots the curves you tell it, for now
-
-dataDict = rr.dir_to_dict(testpath, fileRange = fileRange)
 
 stack = 0
 stackstep = 0.000 # to separate vertically the scans
