@@ -4,7 +4,7 @@ Created on Wed Apr 12 13:19:22 2017
 
 RedRed Analysis
 
-@author: S.Y.Agustsson
+@author: S.Y.Agustsson, V.Yu. Grigorev
 """
 from scipy import signal
 from scipy import io
