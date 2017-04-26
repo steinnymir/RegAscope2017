@@ -21,7 +21,7 @@ from matplotlib import cm
 
 #Choose files
 testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
-testpath = '..//test_data'
+testpath = 'test_data'
 
 fileRange = [0,0] # select files to use, [0,0] stands for all
 
