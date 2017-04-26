@@ -60,10 +60,11 @@ def remove_DC_offset(trace, zerofrom = 7460, zeroto = 7500):
 
 def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     """set time zero"""
-    newtimedata = timeData + max(timeData) - timeZero
+    timeshift=max(timeData)
+    newtimedata = timeData + timeshift - timeZero
     if reverse:
         newtimedata = -newtimedata
-    return(newtimedata)
+    return(newtimedata,timeshift) #Some time its better to define time shift from one trace and aply it to athers, since max or min value could be different, like in my case
 
 
 def quick_filter(trace, order = 2, cutfreq = 0.1):
