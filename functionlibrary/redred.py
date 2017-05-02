@@ -6,7 +6,7 @@ Created on Tue Apr 25 14:11:19 2017
 """
 
 #%% Import modules
-
+import pickle
 import os
 import numpy as np
 import scipy as sp
@@ -25,9 +25,13 @@ from matplotlib import cm
 #%%
 def main():
     
-
-
-    #use a test file to test most functions in this file
+    """
+    use a test file to test most funnctions in this file
+    
+    now set for norm_to_pump
+    
+    """
+    
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data'
     
@@ -156,7 +160,7 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
     """ Generate a dictionary containing info from file name and data"""
     
     #select all files if range is [0,0]
-    if fileRange == [0,0]:
+    if fileRange == [0,0] or fileRange[1]<fileRange[0]:
         fileRange[1] = len(sourceDirectory)
         
         # pick scans to work on
@@ -261,11 +265,11 @@ def save_filtered_trace(dataDict, directory, filename, filtermultiplier):
     
 
 
-def quickPlot(sourceDirectory, cutfreq):
+def quickPlot(sourceDirectory, cutfreq, KeyDependence = 'Temperature'):
         
     dataDict = dir_to_dict(sourceDirectory)
     # initialize regualr plot
-    KeyDependence = 'Temperature'
+    
     Title = KeyDependence + ' Dependence'
 
     fig = plt.figure(Title, figsize = (19,10))
@@ -280,7 +284,7 @@ def quickPlot(sourceDirectory, cutfreq):
       
     # Plot a "key" dependence from 
     for key in dataDict:
-        x, ts = timezero_shift(dataDict[key]['data'][0], reverse = True)
+        x = timezero_shift(dataDict[key]['data'][0], reverse = True)
         y = quick_filter(remove_DC_offset(dataDict[key]['data'][1]), 
                             order = 2, cutfreq = cutfreq)
 
@@ -380,6 +384,14 @@ def name_to_info(file):
 
 def file_creation_date(file):
     return datetime.fromtimestamp(int(os.path.getmtime(file))).strftime('%Y-%m-%d %H:%M:%S')
+
+def save_obj(obj, name ):
+    with open('obj/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 #%% run main
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ import pyqtgraph as pg
 #plot
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import tkinter as tk
+from tkinter import filedialog
 
 #%% Parameters
 
@@ -23,21 +25,33 @@ from matplotlib import cm
 testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
 testpath = 'test_data'
 
+
+
+#choose a folder
+
+root = tk.Tk()
+root.withdraw()
+dataDir = filedialog.askdirectory(initialdir = 'E://DATA//_RAW')
+
+
 fileRange = [0,0] # select files to use, [0,0] stands for all
 
 # Filter:
 filterOrder = 2
-NyqCutFreq = 0.03
+NyqCutFreq = 0.005
 
 # Choose parameter being scanned
-KeyDependence = 'Temperature'
+KeyDependence = 'Pump Power'
+
+
 
 Title = KeyDependence + ' Dependence'
 
 #save = False
  
 #import data
-dataDict = rr.dir_to_dict(testpath, fileRange = fileRange)
+#dataDict = rr.norm_to_pump(rr.dir_to_dict(dataDir, fileRange = fileRange))
+dataDict = rr.dir_to_dict(dataDir, fileRange = fileRange)
 
 #%% GUI plot
 #win = pg.GraphicsWindow(title="Plotting test")
@@ -71,9 +85,11 @@ for key in dataDict:
     x = rr.timezero_shift(dataDict[key]['data'][0], reverse = True)
     y = rr.quick_filter(rr.remove_DC_offset(dataDict[key]['data'][1])+stackval, 
                         order = filterOrder, cutfreq = NyqCutFreq)
+    yn = y / dataDict[key]['Pump Power']
+    
 #    gui1.plot(x,y)
     col = next(color)
-    plt1.plot(x,y, label = dataDict[key][KeyDependence], c=col)
+    plt1.plot(x,yn, label = dataDict[key][KeyDependence], c=col)
 
     
 plt.show()
