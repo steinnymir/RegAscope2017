@@ -25,33 +25,40 @@ from matplotlib import cm
 #%%
 def main():
     
-    direct = 'E:/DATA/_RAW/RuCl3/2017-04-11/'
-    lst = os.listdir(direct)
-    n=0
-    for i in os.listdir(direct):
-        name_to_info(direct+i)
-        print(n)
-        n+=1
 
-def main2():
+
     #use a test file to test most functions in this file
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data'
     
     dataDict = dir_to_dict(testpath)
-    print(dataDict[testfile]) # test dir_to_dict
-    
-    x = dataDict[testfile]['data'][0]
-    y = dataDict[testfile]['data'][1]
-    X, ts = timezero_shift(x, timeZero = 50, reverse = True)
-    Y = quick_filter(y, order = 3, cutfreq = 0.01)
-    
-    fig = plt.figure("test")
-    plt.clf()
-    
-    ax1 = fig.add_subplot(111)
-    ax1.plot(X,Y)
+    print(dataDict[testfile]['data'][1]) # test dir_to_dict
 
+    dataDictNorm = norm_to_pump(dir_to_dict(testpath))
+    print(dataDict[testfile]['data'][1]) # test dir_to_dict
+#    diff = dataDictNorm[testfile]['data'][1][1] - dataDict[testfile]['data'][1][1]
+#    print(diff)
+    
+    fig = plt.figure("Raw Trace")
+    plt.clf()
+    ax1 = fig.add_subplot(211)
+    ax2 = fig.add_subplot(212)
+    
+    for key in dataDict:
+        #print(str(dataDict[key]['Pump Power']))
+        x = dataDict[key]['data'][0]
+        X = timezero_shift(x, timeZero = 50, reverse = True)
+        
+        y = dataDict[key]['data'][1]
+        Y = quick_filter(y, order = 3, cutfreq = 0.01)
+        Yf = remove_DC_offset(Y)
+        
+        yn = dataDictNorm[key]['data'][1]
+        Yn = quick_filter(yn, order = 3, cutfreq = 0.01)
+        Ynf = remove_DC_offset(Yn)
+        
+        ax1.plot(X,Yf)
+        ax2.plot(X,Ynf)
 #%%
 
 def import_file(filename, content = 'Daten'):
@@ -102,11 +109,13 @@ def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     and feed it to this function as "timeZero", so no need to have two outputs 
     from this function.
     
+    
+    I add a comment
     """
     
     #timeshift = max(timeData)
     #newtimedata = timeData + timeshift - timeZero
-    timeData = timeData - time Zero
+    timeData = timeData - timeZero
     if reverse:
         timeData = -timeData
         
@@ -132,7 +141,7 @@ def file_to_dict(filepath):
     """
     DataDict = {}    
     filename  = os.path.basename(filepath)
-    print(filename)    
+    #print(filename)    
     ext = os.path.splitext(filename)[-1].lower()
      
     if ext == ".mat" and not filename == 't-cal':
@@ -157,7 +166,10 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
     nGood, nBad = 0,0
     for item in fileNames:
         filepath = sourceDirectory + '//' + item
-        if not os.path.isdir(filepath):
+        filename = os.path.basename(filepath)
+        ext = os.path.splitext(filename)[-1].lower()
+        #if not os.path.isdir(filepath) and
+        if ext == ".mat" and not filename == 't-cal':
             DataDict[item] = file_to_dict(filepath) #returns nothing if file was not datafile.mat
             if DataDict[item]: 
                 nGood += 1
@@ -244,7 +256,7 @@ def save_filtered_trace(dataDict, directory, filename, filtermultiplier):
         sraw = str(raw[i])
         sfilt = str(filt[i])        
         file.write(stime + ',' + sraw + ',' + sfilt + '\n')
-    print('file ' + filename + ' ready')
+    print('file ' + filename + ' is ready')
     file.close()
     
 
@@ -278,8 +290,19 @@ def quickPlot(sourceDirectory, cutfreq):
         
     plt.show()
     plt.legend(bbox_to_anchor=(1.005, 1), loc='best', borderaxespad=0., ncol=1)
+    
+    
+def norm_to_pump(dataDict):
+    """ Divide all curves in dataDict by it's pump power value"""
+    dataDictNorm = dataDict
+    norm = []
+    for key in dataDict:
+        norm = dataDict[key]['data'][1] / dataDict[key]['Pump Power']#dataDict[key]['Pump Power']
+        rest = norm-dataDict[key]['data'][1][1]
+        dataDictNorm[key]['data'][1] = norm
+        #print('rest:  '+str(rest))
         
-
+    return(dataDictNorm)
 
 #%% filename interpreter
 
@@ -298,7 +321,7 @@ def name_to_info(file):
     FileName = ('.').join(os.path.basename(file).split('.')[:-1]) 
     filenamex = FileName.lower()
     filename = filenamex.replace(',','.')
-    print(filename)
+    #print(filename)
     
     #errStr = FileName + ' contains no info about: '
     
