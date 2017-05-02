@@ -34,6 +34,7 @@ def main():
         n+=1
 
 def main2():
+    #use a test file to test most functions in this file
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data'
     
@@ -92,15 +93,25 @@ def remove_DC_offset(trace, zerofrom = 7460, zeroto = 7500):
 
 
 def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
-    """Shift the 0 offset of a time trace, returns [new time trace] and [time shift]"""
-    timeshift = max(timeData)
-    newtimedata = timeData + timeshift - timeZero
+    """Shift the 0 offset of a time trace, returns [new time trace] and [time shift]
+    
+    Some time its better to define time shift from one trace and aply it to athers, 
+    since max or min value could be different, like in my case
+    
+    -> You can define the time shift with a single line (timeshift = max(TimeData))
+    and feed it to this function as "timeZero", so no need to have two outputs 
+    from this function.
+    
+    """
+    
+    #timeshift = max(timeData)
+    #newtimedata = timeData + timeshift - timeZero
+    timeData = timeData - time Zero
     if reverse:
-        newtimedata = -newtimedata
+        timeData = -timeData
         
-    return(newtimedata, timeshift) #Some time its better to define time shift from one trace and aply it to athers, since max or min value could be different, like in my case
-
-
+    #return(newtimedata, timeshift) 
+    return(timeData)
 
 
 def quick_filter(trace, order = 2, cutfreq = 0.1):
