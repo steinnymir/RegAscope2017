@@ -64,7 +64,60 @@ def main():
         ax1.plot(X,Yf)
         ax2.plot(X,Ynf)
 #%%
+class rrScan(object):
+    """ class defining a scan from redred setup
+        
+        Attributes
+        ----------
+        
+        time        : time axis [ps]
+        trace       : differential reflectivity axis 
+        pump        : pump power [mW]
+        probe       : probe power [mW]
+        puspot      : pump spot diameter (FWHM gauss) [micrometer]
+        prspot      : probe spot diameter (FWHM gauss) [micrometer]
+        temperature : temperature [K]
+        date        : scan date and time
+        material    : material name
+    
+    """
+    
+    
+    def __init__(self, time, trace):
+        """ 
+        Initialize the scan by defining time and differential reflectivity data
+        
+        Also define any other parameter as listed
+        """
+        self.time = time
+        self.trace = trace
+        self.pump = 0
+        self.probe = 0
+        self.puspot = 0
+        self.prspot = 0
+        self.temperature = 0
+        self.date = ''
+        self.material = ''
 
+    def shiftTime(self, tshift):
+        """ Shift time scale by tshift. Changes time zero"""
+        shiftedTime = self.time - tshift
+        return(shiftedTime)
+    
+    def flipTime(self):
+        """ Flip time scale: t = -t """
+        revtime = -self.time
+        return(revtime)
+    
+    def removeDC(self):
+        """Remove DC offset defined using last 50 points on the scan"""
+        noDCtrace = self.trace - np.average(self.trace[7460:7500:1])
+        return(noDCtrace)
+
+    def filterit(self, cutHigh = 0.1, cutLow = 0, order = 2):
+        pass
+
+#%%
 def import_file(filename, content = 'Daten'):
     """ 
     Import data aquired with RedRed software
