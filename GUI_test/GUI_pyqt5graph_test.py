@@ -12,6 +12,12 @@ if app is None:
 
 ## Define a top-level widget to hold everything
 w = QtGui.QWidget()
+w.move(400,100)
+w.showFullScreen()
+
+# change background color
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
 
 ## Create some widgets to be placed inside
 btn = QtGui.QPushButton('press me')
@@ -24,7 +30,7 @@ x = np.arange(0,1000,1)
 noise = np.random.normal(0,1,1000)/1
 y = np.sin(x/10)+noise
 
-plt1 = pltW1.plot(x,y)
+plt1 = pltW1.plot(x,y, color='g')
 
 
 ## Create a grid layout to manage the widgets size and position
