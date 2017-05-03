@@ -10,7 +10,7 @@ import pickle
 import os
 import numpy as np
 import scipy as sp
-import scipy.signal as spsig
+import scipy.signal as spsignal
 #GUI
 #from pyqtgraph.Qt import QtGui, QtCore
 #import pyqtgraph as pg
@@ -33,36 +33,40 @@ def main():
     """
     
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
-    testpath = '..//test_data'
+    testpath = '..//test_data//'
     
-    dataDict = dir_to_dict(testpath)
-    print(dataDict[testfile]['data'][1]) # test dir_to_dict
-
-    dataDictNorm = norm_to_pump(dir_to_dict(testpath))
-    print(dataDict[testfile]['data'][1]) # test dir_to_dict
-#    diff = dataDictNorm[testfile]['data'][1][1] - dataDict[testfile]['data'][1][1]
-#    print(diff)
-    
-    fig = plt.figure("Raw Trace")
-    plt.clf()
-    ax1 = fig.add_subplot(211)
-    ax2 = fig.add_subplot(212)
-    
-    for key in dataDict:
-        #print(str(dataDict[key]['Pump Power']))
-        x = dataDict[key]['data'][0]
-        X = timezero_shift(x, timeZero = 50, reverse = True)
-        
-        y = dataDict[key]['data'][1]
-        Y = quick_filter(y, order = 3, cutfreq = 0.01)
-        Yf = remove_DC_offset(Y)
-        
-        yn = dataDictNorm[key]['data'][1]
-        Yn = quick_filter(yn, order = 3, cutfreq = 0.01)
-        Ynf = remove_DC_offset(Yn)
-        
-        ax1.plot(X,Yf)
-        ax2.plot(X,Ynf)
+    scn1 = rrScan()
+    scn1.importRawFile(testpath + testfile)
+    print(scn1.scanID)
+#    
+#    dataDict = dir_to_dict(testpath)
+#    print(dataDict[testfile]['data'][1]) # test dir_to_dict
+#
+#    dataDictNorm = norm_to_pump(dir_to_dict(testpath))
+#    print(dataDict[testfile]['data'][1]) # test dir_to_dict
+##    diff = dataDictNorm[testfile]['data'][1][1] - dataDict[testfile]['data'][1][1]
+##    print(diff)
+#    
+#    fig = plt.figure("Raw Trace")
+#    plt.clf()
+#    ax1 = fig.add_subplot(211)
+#    ax2 = fig.add_subplot(212)
+#    
+#    for key in dataDict:
+#        #print(str(dataDict[key]['Pump Power']))
+#        x = dataDict[key]['data'][0]
+#        X = timezero_shift(x, timeZero = 50, reverse = True)
+#        
+#        y = dataDict[key]['data'][1]
+#        Y = quick_filter(y, order = 3, cutfreq = 0.01)
+#        Yf = remove_DC_offset(Y)
+#        
+#        yn = dataDictNorm[key]['data'][1]
+#        Yn = quick_filter(yn, order = 3, cutfreq = 0.01)
+#        Ynf = remove_DC_offset(Yn)
+#        
+#        ax1.plot(X,Yf)
+#        ax2.plot(X,Ynf)
 #%%
 class rrScan(object):
     """ class defining a scan from redred setup
@@ -71,75 +75,144 @@ class rrScan(object):
         ----------
         
         time        : time axis [ps]
-        trace       : differential reflectivity axis 
-        pump        : pump power [mW]
-        probe       : probe power [mW]
-        puspot      : pump spot diameter (FWHM gauss) [micrometer]
-        prspot      : probe spot diameter (FWHM gauss) [micrometer]
+        trace       : differential reflectivity axis
+        ftrace      : filtered differential reflectivity axis
+        
+        pumpPw      : pump power [mW]
+        probePw     : probe power [mW]
+        destPw      : destruction power [mW]
+        pumpSp      : pump spot diameter (FWHM gauss) [micrometer]
+        probeSp      : probe spot diameter (FWHM gauss) [micrometer]
         temperature : temperature [K]
         date        : scan date and time
         material    : material name
+        R0          : non-pumped reflectivity of the sample
     
     """
     
     
-    def __init__(self, time, trace):
+    def __init__(self):
         """ 
         Initialize the scan by defining time and differential reflectivity data
         
         Also define any other parameter as listed
         """
         
-        self.time = time
-        self.trace = trace
-        self.pump = 0
-        self.probe = 0
-        self.puspot = 0
-        self.prspot = 0
+        self.time = []
+        self.trace = []
+        self.ftrace = []
+                
+        self.pumpPw = 0
+        self.probePw = 0
+        self.destrPw = 0
+        self.pumpSp = 0
+        self.probeSp = 0
         self.temperature = 0
         self.date = ''
         self.material = ''
-
+        self.R0 = 0
+        
+        self.analysisHistory = [] #keeps track of analysis changes performed
+        self.scanID = []
+        
+        
+    def makeScanID(self):
+        """ Create a name ID for the scan"""
+        if self.material:
+            self.scanID.append(self.material)
+        else:
+            self.scanID.append('UnknMat')
+        if self.date:
+            self.scanID.append(self.date)
+        if self.pumpPw != 0:
+            self.scanID.append('Pump-' + str(self.pumpPw) + 'mW')
+        if self.destrPw != 0:
+            self.scanID.append('Dest-' + str(self.destrPw) + 'mW')
+        if self.temperature != 0:
+            self.scanID.append('Temp-' + str(self.temperature) + 'K')
+        self.scanID = ' '.join(self.scanID)
+           
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = self.time - tshift
-        
+        self.analysisHistory.append('shift time')
     
     def flipTime(self):
         """ Flip time scale: t = -t """
         self.time = -self.time
-        
+        self.analysisHistory.append('flip time')
     
+    def flipTrace(self):
+        """ Flip the trace, usually not needed"""
+        self.trace = -self.trace
+        self.analysisHistory.append('flip trace')
+
     def removeDC(self):
         """Remove DC offset defined by the average of the last 40 points on the scan"""
         self.trace = self.trace - np.average(self.trace[7460:7500:1])
-        
+        self.analysisHistory.append('removeDC')
 
-    def filterit(self, cutHigh = 0.1, cutLow = 0, order = 2):
-        pass
+    def filterit(self, cutHigh = 0.1, order = 2):
+        """ apply simple low pass filter to data"""
+        b, a = spsignal.butter(order, cutHigh, 'low', analog= False)
+        self.ftrace = spsignal.lfilter(b,a,self.trace)
+        self.analysisHistory.append('filter')
     
-    
-    def importFile(self, file):
+    def importRawFile(self, file):
         data = sp.io.loadmat(file)
         try:
             self.time = data['Daten'][2]
             self.trace = data['Daten'][0]
             self.R0 = data['DC'][0][0]
-        
+            
         except KeyError:
             print(file + ' is not a valid redred scan datafile')
+        parDict = name_to_info(file)
+        for key in parDict:
+            if key == 'Scan Date':
+                self.date = parDict[key]
+            elif key == 'Pump Power':
+                self.pumpPw = parDict[key]
+            elif key == 'Probe Power':
+                self.probePw = parDict[key]
+            elif key == 'Temperature':
+                self.temperature = parDict[key]
+            elif key == 'Destruction Power':
+                self.destPw = parDict[key]
+            elif key == 'Material':
+                self.material = parDict[key]
+            elif key == 'Pump Spot':
+                self.pumpSp = parDict[key]                
+            elif key == 'Probe Spot':
+                self.probeSp = parDict[key]
+            elif key == 'Other':
+                self.other = parDict[key]
+            else:
+                print('Unidentified Key: ' + key)
+        self.makeScanID()
+        
+        
+    def importCSV(self,file):
+        pass
+    
 
+        
+    def exportCSV(self,directory):
+        pass
+                
+    def normToPump(self):
+        if self.pumpPw != 0:
+            self.trace = self.trace / self.pumpPw
+        self.analysisHistory.append('normalized to PumpPw')    
+    
+            
+           
 #%%
 def import_file(filename, content = 'Daten'):
-    """ 
-    Import data aquired with RedRed software
-    
-    returns data as [time,trace]
-    
-    """    
+    """Import data aquired with RedRed software
+    returns data as [time,trace]"""    
     MData = sp.io.loadmat(filename)    #load matlab file
     output = []
-    
     if filename == 't-cal.mat':
         pass
     else:
@@ -147,26 +220,18 @@ def import_file(filename, content = 'Daten'):
             output = MData[content]
         except KeyError:
             print('KeyError: \nNo key "' + content + '" found in ' + filename)
-        
         if content == 'Daten':
             x=[[],[]]
             x[0] = output[2] #assign time axis
             x[1] = output[0] #assgin data axis
             output = x
-        
         return(output)
-
-
 
 def remove_DC_offset(trace, zerofrom = 7460, zeroto = 7500):
     """remove DC offset from signal"""
-    
     shift=np.average(trace[zerofrom:zeroto:1])
-    
     newtrace=trace-shift
-    
     return(newtrace)
-
 
 def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     """Shift the 0 offset of a time trace, returns [new time trace] and [time shift]
@@ -177,11 +242,7 @@ def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     -> You can define the time shift with a single line (timeshift = max(TimeData))
     and feed it to this function as "timeZero", so no need to have two outputs 
     from this function.
-    
-    
-    I add a comment
     """
-    
     #timeshift = max(timeData)
     #newtimedata = timeData + timeshift - timeZero
     timeData = timeData - timeZero
@@ -191,16 +252,11 @@ def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     #return(newtimedata, timeshift) 
     return(timeData)
 
-
 def quick_filter(trace, order = 2, cutfreq = 0.1):
     """ apply simple low pass filter to data"""
-    b, a = spsig.butter(order, cutfreq, 'low', analog= False)
-    filtered_trace = spsig.lfilter(b,a,trace)
+    b, a = sp.signal.butter(order, cutfreq, 'low', analog= False)
+    filtered_trace = sp.signal.lfilter(b,a,trace)
     return(filtered_trace)
-
-
-
-
 
 def file_to_dict(filepath):
     """
@@ -220,14 +276,11 @@ def file_to_dict(filepath):
 
 
 
-
 def dir_to_dict(sourceDirectory, fileRange = [0,0]):
     """ Generate a dictionary containing info from file name and data"""
-    
     #select all files if range is [0,0]
     if fileRange == [0,0] or fileRange[1]<fileRange[0]:
         fileRange[1] = len(sourceDirectory)
-        
         # pick scans to work on
     fileNames = os.listdir(sourceDirectory)[fileRange[0]:fileRange[1]]
     
@@ -245,9 +298,7 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
                 DataDict[item]['data'] = import_file(filepath)
             else:
                 nBad += 1
-            
     print('Imported '+ str(nGood) + ' Files \n discarded '+ str(nBad) + ' Files')
-    
     return(DataDict)
 
 
@@ -367,7 +418,7 @@ def norm_to_pump(dataDict):
     norm = []
     for key in dataDict:
         norm = dataDict[key]['data'][1] / dataDict[key]['Pump Power']#dataDict[key]['Pump Power']
-        rest = norm-dataDict[key]['data'][1][1]
+        #rest = norm-dataDict[key]['data'][1][1]
         dataDictNorm[key]['data'][1] = norm
         #print('rest:  '+str(rest))
         
