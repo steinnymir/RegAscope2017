@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May  3 10:37:19 2017
+Created on Wed May  3 22:03:55 2017
 
 @author: sagustss
 """
@@ -14,18 +14,14 @@ import tkinter as tk
 from tkinter import filedialog
 from matplotlib import cm
 
-file = 'test_data//RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat'
 
 root = tk.Tk()
 root.withdraw()
-dataDir = filedialog.askdirectory(initialdir = 'E://DATA//_RAW')
-
+dataDir = filedialog.askdirectory(initialdir = 'E://DATA//RuCl3//Analysis//')
 
 scanlist = os.listdir(dataDir)
 
-Title = 'Low Fluence Temperature Dependence 2'
 Title = os.path.basename(dataDir)
-
 
 fig = plt.figure(Title, figsize = (19,10))
 plt.clf()
@@ -47,7 +43,7 @@ plt3.set_ylabel('Amplitude', fontsize=18)
 plt3.set_title('Decay time vs Temperature',fontsize=26)
 plt3.tick_params(axis='x', labelsize=12)
 plt3.tick_params(axis='y', labelsize=12)
-colorlist = cm.rainbow(np.linspace(0,1,len(os.listdir(dataDir))))
+colorlist = cm.rainbow(np.linspace(0,1,5))
 color=iter(colorlist)
 
 
@@ -61,7 +57,10 @@ scn = []
 #define fitting function
 def func(x, A, t0, c, d):
     return A * np.exp(- x / t0) + c*x +d
+def func1(x, A, t0, d):
+    return A * np.exp(- x / t0) + d
 guess = [0.0005, 0.1, -1, -1]
+guess1 = [0.0005, 0.1, -1]
 fitparameters = []
 
 
@@ -70,22 +69,23 @@ for i in range(len(scanlist)):
     file = os.listdir(dataDir)[i]
 #    scn[i] = rr.rrScan()
     scn.append(rr.rrScan())
-    scn[i] .importRawFile(dataDir + '//' + file)
-    scn[i] .filterit(cutHigh=0.05)
-    scn[i] .flipTime()
-    scn[i] .shiftTime(-125)
-    scn[i] .removeDC()
+    scn[i] .importCSV(dataDir + '//' + file)
 
+#    scn[i] .filterit(cutHigh=0.05)
+#    scn[i] .flipTime()
+
+    scn[i].shiftTime(-28)
+#    scn[i] .removeDC()
 
 #
-scn = sorted(scn, key=lambda scn: scn.temperature)
+scn = sorted(scn, key=lambda scn: scn.pumpPw)
 
-for i in range(len(scanlist)-7):
+for i in range(len(scanlist)-3):
 
     
     #l = str(scn[i].temperature) + 'K'
-    xdata = scn[i].time[0:6230:1]
-    ydata = scn[i].trace[0:6230:1]
+    xdata = scn[i].time[0:4985:1]
+    ydata = scn[i].trace[0:4985:1]
     c = next(color)
     try:
         popt, pcov = scipy.optimize.curve_fit(func, xdata, ydata, p0 = guess)
@@ -93,7 +93,7 @@ for i in range(len(scanlist)-7):
         fitparameters.append(popt)
         
         plt1.plot(xdata, func(xdata, *popt), '--', c=c)
-        plt1.plot(scn[i].time[50::],scn[i].trace[50::], 
+        plt1.plot(scn[i].time[250::],scn[i].trace[250::], 
                   c=c, 
                   label=str(scn[i].temperature) + 'K', 
                   alpha=0.5)
@@ -104,22 +104,22 @@ for i in range(len(scanlist)-7):
     
     
 
-temp = []
+power = []
 tau = []
 amp= []
 for i in range(len(scanlist)):
     try:
         tau.append(fitparameters[i][1])
         amp.append(fitparameters[i][0])
-        temp.append(scn[i].temperature)
+        power.append(scn[i].pumpPw)
 
         #print(temp[i], tau[i])
     except(IndexError):
         print('index error')
     
 #plt2.scatter(temp[0:-7:1],tau[0:-7:1],c=colorlist)
-plt2.scatter(temp,tau,c=colorlist)
-plt3.scatter(temp,amp,c=colorlist)
+plt2.scatter(power,tau,c=colorlist)
+plt3.scatter(power,amp,c=colorlist)
 plt3.set_xscale('log')
 plt3.set_ylim([0,0.002])
 
@@ -129,7 +129,7 @@ plt3.set_ylim([0,0.002])
 def expfunc(t, A, t0, c):
     return A * np.exp(- t / t0) + c
 
-poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, temp[0:-7:1], tau[0:-7:1], p0 = [1, 10,1])
+poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, power[0:-7:1], tau[0:-7:1], p0 = [1, 10,1])
 
 xdata = np.linspace(3,70)
 
@@ -145,14 +145,13 @@ plt2.plot(xdata, expfunc(xdata, *poptDT), 'r--')
 
 plt.legend()
 fig.show()
+#
+##saveDir = filedialog.askdirectory(initialdir = 'E://DATA//RuCl3//Analysis//')
+#saveDir = 'E://DATA//RuCl3//Analysis//' + Title + '//'
+#savename = saveDir + Title
+#if not os.path.exists(saveDir):
+#    os.makedirs(saveDir)
 
-#saveDir = filedialog.askdirectory(initialdir = 'E://DATA//RuCl3//Analysis//')
-saveDir = 'E://DATA//RuCl3//Analysis//' + Title + '//'
-savename = saveDir + Title
-if not os.path.exists(saveDir):
-    os.makedirs(saveDir)
-    
-for i in range(len(scn)):
-    scn[i].exportCSV(saveDir)
-fig.savefig(savename +'.png', format='png')
+
+#fig.savefig(savename +'.png', format='png')
 

@@ -7,6 +7,7 @@ Created on Tue Apr 25 14:11:19 2017
 
 #%% Import modules
 import pickle
+import csv
 import os
 import numpy as np
 import scipy as sp
@@ -35,10 +36,23 @@ def main():
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data//'
     
+    savepath = "E://DATA//RuCl3//Analysis//"
+    
     scn1 = rrScan()
     scn1.importRawFile(testpath + testfile)
-    print(scn1.scanID)
-#    
+    #print(scn1.scanID)
+    #print(scn1.time)
+    scn1.flipTime()
+    #print(scn1.time)
+
+    scn1.exportCSV(savepath)
+    #print(scn1.parameters)
+    #print(scn1.material)
+
+
+    scn2 = rrScan()
+    scn2.importCSV('..//test_data//RuCl3- 2017-04-19 17.33.14 Pump1.5mW Temp7.0K.txt')
+    print(scn2.rawtrace)
 #    dataDict = dir_to_dict(testpath)
 #    print(dataDict[testfile]['data'][1]) # test dir_to_dict
 #
@@ -99,8 +113,8 @@ class rrScan(object):
         """
         
         self.time = []
+        self.rawtrace = []
         self.trace = []
-        self.ftrace = []
                 
         self.pumpPw = 0
         self.probePw = 0
@@ -111,13 +125,26 @@ class rrScan(object):
         self.date = ''
         self.material = ''
         self.R0 = 0
+        self.filter = []
         
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []
+        self.filename = []
+        self.parameters = {}
         
+
         
-    def makeScanID(self):
-        """ Create a name ID for the scan"""
+    def initParameters(self):
+        """ Create a a dictionary of all parameters and a nameID for the scan"""
+        self.parameters = {'Pump Power': [self.pumpPw,'mW'],
+                       'Probe Power': [self.probePw,'mW'],
+                       'Destruction Power': [self.destrPw,'mW'],
+                       'Pump Spot': [self.pumpSp,'mum'],
+                       'Probe Spot': [self.probeSp,'mum'],
+                       'Temperature': [self.temperature,'K'],
+                       'R0': [self.R0,'']
+                       }        
+
         if self.material:
             self.scanID.append(self.material)
         else:
@@ -125,21 +152,25 @@ class rrScan(object):
         if self.date:
             self.scanID.append(self.date)
         if self.pumpPw != 0:
-            self.scanID.append('Pump-' + str(self.pumpPw) + 'mW')
+            self.scanID.append('Pump' + str(self.pumpPw) + 'mW')
         if self.destrPw != 0:
-            self.scanID.append('Dest-' + str(self.destrPw) + 'mW')
+            self.scanID.append('Dest' + str(self.destrPw) + 'mW')
         if self.temperature != 0:
-            self.scanID.append('Temp-' + str(self.temperature) + 'K')
-        self.scanID = ' '.join(self.scanID)
+            self.scanID.append('Temp' + str(self.temperature) + 'K')
+        self.filename = ' '.join(self.scanID)
+        self.filename = self.filename.replace(':','.')
            
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
-        self.time = self.time - tshift
+        self.time = np.array(self.time) - tshift
         self.analysisHistory.append('shift time')
     
     def flipTime(self):
-        """ Flip time scale: t = -t """
+        """ Flip time scale: t = -t and order in the list 
+        (ensures growing time in list)"""
         self.time = -self.time
+        #self.time = self.time[::-1]
+        #self.trace = self.trace[::-1]                
         self.analysisHistory.append('flip time')
     
     def flipTrace(self):
@@ -155,19 +186,34 @@ class rrScan(object):
     def filterit(self, cutHigh = 0.1, order = 2):
         """ apply simple low pass filter to data"""
         b, a = spsignal.butter(order, cutHigh, 'low', analog= False)
-        self.ftrace = spsignal.lfilter(b,a,self.trace)
+        self.trace = spsignal.lfilter(b,a,self.rawtrace)
+        self.filter = [cutHigh, order]
         self.analysisHistory.append('filter')
+    
+    def filterFreq(self):
+        """ Gives low pass filter frequency in THz """
+        nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
+        return(nyqFreq * self.filter[0])
+    
+    def normToPump(self):
+        if self.pumpPw != 0:
+            self.trace = self.trace / self.pumpPw
+        self.analysisHistory.append('normalized to PumpPw')        
+
+#%%file managment        
     
     def importRawFile(self, file):
         data = sp.io.loadmat(file)
         try:
             self.time = data['Daten'][2]
-            self.trace = data['Daten'][0]
+            self.rawtrace = data['Daten'][0]
+            self.trace = self.rawtrace
             self.R0 = data['DC'][0][0]
             
         except KeyError:
             print(file + ' is not a valid redred scan datafile')
         parDict = name_to_info(file)
+
         for key in parDict:
             if key == 'Scan Date':
                 self.date = parDict[key]
@@ -181,6 +227,7 @@ class rrScan(object):
                 self.destPw = parDict[key]
             elif key == 'Material':
                 self.material = parDict[key]
+                #print(self.material)
             elif key == 'Pump Spot':
                 self.pumpSp = parDict[key]                
             elif key == 'Probe Spot':
@@ -189,25 +236,87 @@ class rrScan(object):
                 self.other = parDict[key]
             else:
                 print('Unidentified Key: ' + key)
-        self.makeScanID()
         
-        
-    def importCSV(self,file):
-        pass
-    
+
+        self.initParameters()
 
         
-    def exportCSV(self,directory):
-        pass
+    def importCSV(self,file):
+        """ Read a CSV containing rrScan() data, and assign to self all the data"""
+        try:
+            file = open(file, 'r')
+        except FileNotFoundError:
+            print('ERROR 404: file not found')
+        if file:
+            metacounter=0
+            for l in file:
+                metacounter+=1
+                line = l.split('\t')
+                if 'material' in line: self.material = line[1]
+                elif 'Pump Power' in line: self.pumpPw = float(line[1])
+                elif 'Pump Spot' in line: self.pumpSp = float(line[1])
+                elif 'Probe Power' in line: self.probePw = float(line[1])    
+                elif 'Probe Spot' in line: self.probeSp = float(line[1])
+                elif 'date' in line: self.date = line[1]
+                elif 'Destruction Power' in line: self.destrPw = float(line[1])
+                elif 'R0' in line: self.R0 = float(line[1])
+                elif 'Temperature' in line: self.temperature = float(line[1])
+                elif 'RawData' in line : 
+                    break 
+                    print(metacounter)
+            file.seek(0)
+            for l in file:
+                if str.isdigit(l[0]) or l[0] == '-':
+                    line = l.split(',')
+                    self.time.append(float(line[0]))
+                    self.rawtrace.append(float(line[1]))
+                    self.trace.append(float(line[2].replace('\n','')))
+
+        file.close()
+
+        
+    def exportCSV(self, directory, overwrite = False):
+        """ save rrScan() to a file. it overwrites anything it finds"""
+
+        file = open(directory + self.filename + '.txt', 'w+')
+        
+        # Material:
+        file.write('Material:\t' + str(self.material) + '\n')
+        # Date:
+        file.write('Date:\t' + self.date + '\n')
+        # Parameters
+        file.write('------- Parameters -------\n\n')
+        for key in self.parameters:
+            if self.parameters[key][0] != 0:
+                file.write(key + '\t' + 
+                           str(self.parameters[key][0]) + '\t' +
+                           str(self.parameters[key][1]) + '\n' )
+        #filter info
+        if self.filter:
+            file.write('\nLow pass filter frequency:\t' + 
+                       str(self.filter) +'\t' +
+                       str(self.filterFreq()) + 
+                       'THz\n')
+        #data
+        file.write('---------- Data ----------\n\n')
+        file.write('Time\tRawData\tdata\n')
+        for i in range(len(self.trace)):
+            file.write(str(self.time[i])     + ',' +
+                       str(self.rawtrace[i]) + ',' +
+                       str(self.trace[i])    + '\n')
+            self.time = np.array(self.time)
+        file.close()
                 
-    def normToPump(self):
-        if self.pumpPw != 0:
-            self.trace = self.trace / self.pumpPw
-        self.analysisHistory.append('normalized to PumpPw')    
+            
+        
+
+
+                
+
     
             
            
-#%%
+#%% Functions
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
     returns data as [time,trace]"""    
