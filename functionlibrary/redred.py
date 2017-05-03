@@ -89,6 +89,7 @@ class rrScan(object):
         
         Also define any other parameter as listed
         """
+        
         self.time = time
         self.trace = trace
         self.pump = 0
@@ -101,21 +102,32 @@ class rrScan(object):
 
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
-        shiftedTime = self.time - tshift
-        return(shiftedTime)
+        self.time = self.time - tshift
+        
     
     def flipTime(self):
         """ Flip time scale: t = -t """
-        revtime = -self.time
-        return(revtime)
+        self.time = -self.time
+        
     
     def removeDC(self):
-        """Remove DC offset defined using last 50 points on the scan"""
-        noDCtrace = self.trace - np.average(self.trace[7460:7500:1])
-        return(noDCtrace)
+        """Remove DC offset defined by the average of the last 40 points on the scan"""
+        self.trace = self.trace - np.average(self.trace[7460:7500:1])
+        
 
     def filterit(self, cutHigh = 0.1, cutLow = 0, order = 2):
         pass
+    
+    
+    def importFile(self, file):
+        data = sp.io.loadmat(file)
+        try:
+            self.time = data['Daten'][2]
+            self.trace = data['Daten'][0]
+            self.R0 = data['DC'][0][0]
+        
+        except KeyError:
+            print(file + ' is not a valid redred scan datafile')
 
 #%%
 def import_file(filename, content = 'Daten'):

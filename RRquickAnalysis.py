@@ -12,7 +12,7 @@ import numpy as np
 #import scipy as sp
 #GUI
 #from pyqtgraph.Qt import QtGui, QtCore
-import pyqtgraph as pg
+#import pyqtgraph as pg
 #plot
 import matplotlib.pyplot as plt
 from matplotlib import cm
