@@ -33,17 +33,17 @@ plt1.set_ylabel('Differential Reflectivity', fontsize=18)
 plt1.set_title('Fitted Scans',fontsize=26)
 plt1.tick_params(axis='x', labelsize=12)
 plt1.tick_params(axis='y', labelsize=12)
-plt2.set_xlabel('Temperature [K]', fontsize=18)
+plt2.set_xlabel('Power [mW]', fontsize=18)
 plt2.set_ylabel('Decay Time [ps]', fontsize=18)
-plt2.set_title('Decay time vs Temperature',fontsize=26)
+plt2.set_title('Decay time vs Power',fontsize=26)
 plt2.tick_params(axis='x', labelsize=12)
 plt2.tick_params(axis='y', labelsize=12)
-plt3.set_xlabel('Temperature [K]', fontsize=18)
+plt3.set_xlabel('Power [mW]', fontsize=18)
 plt3.set_ylabel('Amplitude', fontsize=18)
-plt3.set_title('Decay time vs Temperature',fontsize=26)
+#plt3.set_title('Decay time vs Temperature',fontsize=26)
 plt3.tick_params(axis='x', labelsize=12)
 plt3.tick_params(axis='y', labelsize=12)
-colorlist = cm.rainbow(np.linspace(0,1,5))
+colorlist = cm.rainbow(np.linspace(0,1,10))
 color=iter(colorlist)
 
 
@@ -80,26 +80,30 @@ for i in range(len(scanlist)):
 #
 scn = sorted(scn, key=lambda scn: scn.pumpPw)
 
-for i in range(len(scanlist)-3):
+for i in range(len(scanlist)-4):
 
     
     #l = str(scn[i].temperature) + 'K'
-    xdata = scn[i].time[0:4985:1]
-    ydata = scn[i].trace[0:4985:1]
+    xdata = scn[i].time[250:4985:1]
+    ydata = scn[i].trace[250:4985:1]
     c = next(color)
     try:
         popt, pcov = scipy.optimize.curve_fit(func, xdata, ydata, p0 = guess)
-        #guess = popt
+        guess = popt
         fitparameters.append(popt)
         
         plt1.plot(xdata, func(xdata, *popt), '--', c=c)
-        plt1.plot(scn[i].time[250::],scn[i].trace[250::], 
+        plt1.plot(xdata,ydata, 
                   c=c, 
-                  label=str(scn[i].temperature) + 'K', 
+                  label=str(scn[i].pumpPw) + 'K', 
                   alpha=0.5)
 #        plt2.plot(par, popt[1])
     except RuntimeError:
-        print('no fit parameters found for ' + str(scn[i].temperature) + 'K scan')
+        plt1.plot(scn[i].time[250::],scn[i].trace[250::], 
+          c=c, 
+          label=str(scn[i].pumpPw) + 'K', 
+          alpha=0.5)
+        print('no fit parameters found for ' + str(scn[i].pumpPw) + 'K scan')
 
     
     
@@ -120,7 +124,7 @@ for i in range(len(scanlist)):
 #plt2.scatter(temp[0:-7:1],tau[0:-7:1],c=colorlist)
 plt2.scatter(power,tau,c=colorlist)
 plt3.scatter(power,amp,c=colorlist)
-plt3.set_xscale('log')
+#plt3.set_xscale('log')
 plt3.set_ylim([0,0.002])
 
 
@@ -129,11 +133,11 @@ plt3.set_ylim([0,0.002])
 def expfunc(t, A, t0, c):
     return A * np.exp(- t / t0) + c
 
-poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, power[0:-7:1], tau[0:-7:1], p0 = [1, 10,1])
+poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, power, tau, p0 = [1, 10,1])
 
-xdata = np.linspace(3,70)
+xdat = np.linspace(0,4)
 
-plt2.plot(xdata, expfunc(xdata, *poptDT), 'r--')
+plt2.plot(xdata, expfunc(xdat, *poptDT), 'r--')
 #plt2.text(40,5, str(poptDT[1]))
 
 #poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, temp[0:-7:1], tau[0:-7:1], p0= [0.001,)

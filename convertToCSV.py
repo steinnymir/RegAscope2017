@@ -40,7 +40,8 @@ plt.figure(Title)
 plt.plot(scan.time,scan.trace)
 plt.show()
 print(scan.parameters)
-save = True
+
+save = false
 if save:
     saveDir = 'E://DATA//RuCl3//Analysis//' + Title + '//'
     if not os.path.exists(saveDir):
