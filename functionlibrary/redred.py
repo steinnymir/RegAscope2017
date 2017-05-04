@@ -6,18 +6,16 @@ Created on Tue Apr 25 14:11:19 2017
 """
 
 #%% Import modules
-import pickle
-import csv
-import os
+
 import numpy as np
 import scipy as sp
 import scipy.signal as spsignal
-#GUI
-#from pyqtgraph.Qt import QtGui, QtCore
-#import pyqtgraph as pg
-#plot
+import pickle
+import csv
+import os
+
+
 import matplotlib.pyplot as plt
-#from matplotlib import cm
 #other
 from datetime import datetime
 import re
@@ -25,34 +23,34 @@ from matplotlib import cm
 
 #%%
 def main():
-    
+
     """
     use a test file to test most funnctions in this file
-    
+
     now set for norm_to_pump
-    
+
     """
-    
+
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data//'
-    
+
     savepath = "E://DATA//RuCl3//Analysis//"
-    
-    scn1 = rrScan()
-    scn1.importRawFile(testpath + testfile)
-    #print(scn1.scanID)
-    #print(scn1.time)
-    scn1.flipTime()
-    #print(scn1.time)
 
-    scn1.exportCSV(savepath)
-    #print(scn1.parameters)
-    #print(scn1.material)
-
-
+#    scn1 = rrScan()
+#    scn1.importRawFile(testpath + testfile)
+#    #print(scn1.scanID)
+#    #print(scn1.time)
+#    scn1.flipTime()
+#    #print(scn1.time)
+#
+#    scn1.exportCSV(savepath)
+#    #print(scn1.parameters)
+#    #print(scn1.material)
+#
+#
     scn2 = rrScan()
     scn2.importCSV('..//test_data//RuCl3- 2017-04-19 17.33.14 Pump1.5mW Temp7.0K.txt')
-    print(scn2.rawtrace)
+    time = scn2.time
 #    dataDict = dir_to_dict(testpath)
 #    print(dataDict[testfile]['data'][1]) # test dir_to_dict
 #
@@ -60,80 +58,64 @@ def main():
 #    print(dataDict[testfile]['data'][1]) # test dir_to_dict
 ##    diff = dataDictNorm[testfile]['data'][1][1] - dataDict[testfile]['data'][1][1]
 ##    print(diff)
-#    
+#
 #    fig = plt.figure("Raw Trace")
 #    plt.clf()
 #    ax1 = fig.add_subplot(211)
 #    ax2 = fig.add_subplot(212)
-#    
+#
 #    for key in dataDict:
 #        #print(str(dataDict[key]['Pump Power']))
 #        x = dataDict[key]['data'][0]
 #        X = timezero_shift(x, timeZero = 50, reverse = True)
-#        
+#
 #        y = dataDict[key]['data'][1]
 #        Y = quick_filter(y, order = 3, cutfreq = 0.01)
 #        Yf = remove_DC_offset(Y)
-#        
+#
 #        yn = dataDictNorm[key]['data'][1]
 #        Yn = quick_filter(yn, order = 3, cutfreq = 0.01)
 #        Ynf = remove_DC_offset(Yn)
-#        
+#
 #        ax1.plot(X,Yf)
 #        ax2.plot(X,Ynf)
 #%%
 class rrScan(object):
-    """ class defining a scan from redred setup
-        
-        Attributes
-        ----------
-        
-        time        : time axis [ps]
-        trace       : differential reflectivity axis
-        ftrace      : filtered differential reflectivity axis
-        
-        pumpPw      : pump power [mW]
-        probePw     : probe power [mW]
-        destPw      : destruction power [mW]
-        pumpSp      : pump spot diameter (FWHM gauss) [micrometer]
-        probeSp      : probe spot diameter (FWHM gauss) [micrometer]
-        temperature : temperature [K]
-        date        : scan date and time
-        material    : material name
-        R0          : non-pumped reflectivity of the sample
-    
     """
-    
-    
+    Class defining a scan from redred setup
+
+    """
+
+
     def __init__(self):
-        """ 
+        """
         Initialize the scan by defining time and differential reflectivity data
-        
+
         Also define any other parameter as listed
         """
-        
-        self.time = []
-        self.rawtrace = []
-        self.trace = []
-                
-        self.pumpPw = 0
-        self.probePw = 0
-        self.destrPw = 0
-        self.pumpSp = 0
-        self.probeSp = 0
-        self.temperature = 0
-        self.date = ''
-        self.material = ''
-        self.R0 = 0
-        self.filter = []
-        
-        self.analysisHistory = [] #keeps track of analysis changes performed
-        self.scanID = []
-        self.filename = []
-        self.parameters = {}
-        
 
-        
+        self.time = []          # time data
+        self.rawtrace = []      # raw trace data
+        self.trace = []         # modified trace data
+
+        self.pumpPw = 0         # Pump Power [mW]
+        self.probePw = 0        # Probe Power [mW]
+        self.destrPw = 0        # Destruction Power [mW]
+        self.pumpSp = 0         # Pump beam spot size, FWHM [micrometers]
+        self.probeSp = 0        # Probe beam spot size, FWHM [micrometers]
+        self.temperature = 0    # Temperature [K]
+        self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
+        self.material = ''      # Material name
+        self.R0 = 0             # Static reflectivity
+        self.filter = []        # Filter parameters used for self.trace
+
+        self.analysisHistory = [] #keeps track of analysis changes performed
+        self.scanID = []        # list of parameters used in the name
+        self.filename = []      # String used as file name for saving data
+        self.parameters = {}    # Dictionary of all parameters, somewhat redundant?
+
+
+
     def initParameters(self):
         """ Create a a dictionary of all parameters and a nameID for the scan"""
         self.parameters = {'Pump Power': [self.pumpPw,'mW'],
@@ -143,7 +125,7 @@ class rrScan(object):
                        'Probe Spot': [self.probeSp,'mum'],
                        'Temperature': [self.temperature,'K'],
                        'R0': [self.R0,'']
-                       }        
+                       }
 
         if self.material:
             self.scanID.append(self.material)
@@ -159,20 +141,21 @@ class rrScan(object):
             self.scanID.append('Temp' + str(self.temperature) + 'K')
         self.filename = ' '.join(self.scanID)
         self.filename = self.filename.replace(':','.')
-           
+
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
         self.analysisHistory.append('shift time')
-    
+
+
     def flipTime(self):
-        """ Flip time scale: t = -t and order in the list 
-        (ensures growing time in list)"""
+        """ Flip time scale: t = -t
+        does not revert the list order"""
         self.time = -self.time
         #self.time = self.time[::-1]
-        #self.trace = self.trace[::-1]                
+        #self.trace = self.trace[::-1]
         self.analysisHistory.append('flip time')
-    
+
     def flipTrace(self):
         """ Flip the trace, usually not needed"""
         self.trace = -self.trace
@@ -189,19 +172,19 @@ class rrScan(object):
         self.trace = spsignal.lfilter(b,a,self.rawtrace)
         self.filter = [cutHigh, order]
         self.analysisHistory.append('filter')
-    
+
     def filterFreq(self):
         """ Gives low pass filter frequency in THz """
         nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
         return(nyqFreq * self.filter[0])
-    
+
     def normToPump(self):
         if self.pumpPw != 0:
             self.trace = self.trace / self.pumpPw
-        self.analysisHistory.append('normalized to PumpPw')        
+        self.analysisHistory.append('normalized to PumpPw')
 
-#%%file managment        
-    
+#%%file managment
+
     def importRawFile(self, file):
         data = sp.io.loadmat(file)
         try:
@@ -209,7 +192,7 @@ class rrScan(object):
             self.rawtrace = data['Daten'][0]
             self.trace = self.rawtrace
             self.R0 = data['DC'][0][0]
-            
+
         except KeyError:
             print(file + ' is not a valid redred scan datafile')
         parDict = name_to_info(file)
@@ -229,57 +212,78 @@ class rrScan(object):
                 self.material = parDict[key]
                 #print(self.material)
             elif key == 'Pump Spot':
-                self.pumpSp = parDict[key]                
+                self.pumpSp = parDict[key]
             elif key == 'Probe Spot':
                 self.probeSp = parDict[key]
             elif key == 'Other':
                 self.other = parDict[key]
             else:
                 print('Unidentified Key: ' + key)
-        
+
 
         self.initParameters()
 
-        
+
     def importCSV(self,file):
-        """ Read a CSV containing rrScan() data, and assign to self all the data"""
+        """
+        Read a CSV containing rrScan() data, and assign to self all the data
+        file should be a string of the whole path of the file"""
         try:
-            file = open(file, 'r')
+            f = open(file, 'r')
         except FileNotFoundError:
             print('ERROR 404: file not found')
-        if file:
+        if f:
             metacounter=0
-            for l in file:
+            for l in f:
                 metacounter+=1
                 line = l.split('\t')
                 if 'material' in line: self.material = line[1]
                 elif 'Pump Power' in line: self.pumpPw = float(line[1])
                 elif 'Pump Spot' in line: self.pumpSp = float(line[1])
-                elif 'Probe Power' in line: self.probePw = float(line[1])    
+                elif 'Probe Power' in line: self.probePw = float(line[1])
                 elif 'Probe Spot' in line: self.probeSp = float(line[1])
                 elif 'date' in line: self.date = line[1]
                 elif 'Destruction Power' in line: self.destrPw = float(line[1])
                 elif 'R0' in line: self.R0 = float(line[1])
                 elif 'Temperature' in line: self.temperature = float(line[1])
-                elif 'RawData' in line : 
-                    break 
+                elif 'RawData' in line :
+                    break
                     print(metacounter)
-            file.seek(0)
-            for l in file:
-                if str.isdigit(l[0]) or l[0] == '-':
-                    line = l.split(',')
-                    self.time.append(float(line[0]))
-                    self.rawtrace.append(float(line[1]))
-                    self.trace.append(float(line[2].replace('\n','')))
+            f.close()
+            skipline = True
+            n=0
+            data = []
 
-        file.close()
+            while skipline: # skip metadata section then import array of data
+                try:
+                    data = np.loadtxt(file, delimiter=',', skiprows=n)
+                    n+=1
+                    skipline = False
+                except ValueError:
+                    n+=1
 
-        
+            for i in range(len(data)):
+                self.time.append(data[i][1])
+                self.rawtrace.append(data[i][1])
+                self.trace.append(data[i][1])
+#            file.seek(0)
+#            for l in file:
+#                if str.isdigit(l[0]) or l[0] == '-':
+#                    line = l.split(',')
+#                    self.time.append(float(line[0]))
+#                    self.rawtrace.append(float(line[1]))
+#                    self.trace.append(float(line[2].replace('\n','')))
+
+
+
+
+
+
     def exportCSV(self, directory, overwrite = False):
         """ save rrScan() to a file. it overwrites anything it finds"""
 
         file = open(directory + self.filename + '.txt', 'w+')
-        
+
         # Material:
         file.write('Material:\t' + str(self.material) + '\n')
         # Date:
@@ -288,14 +292,14 @@ class rrScan(object):
         file.write('------- Parameters -------\n\n')
         for key in self.parameters:
             if self.parameters[key][0] != 0:
-                file.write(key + '\t' + 
+                file.write(key + '\t' +
                            str(self.parameters[key][0]) + '\t' +
                            str(self.parameters[key][1]) + '\n' )
         #filter info
         if self.filter:
-            file.write('\nLow pass filter frequency:\t' + 
+            file.write('\nLow pass filter frequency:\t' +
                        str(self.filter) +'\t' +
-                       str(self.filterFreq()) + 
+                       str(self.filterFreq()) +
                        'THz\n')
         #data
         file.write('---------- Data ----------\n\n')
@@ -306,20 +310,12 @@ class rrScan(object):
                        str(self.trace[i])    + '\n')
             self.time = np.array(self.time)
         file.close()
-                
-            
-        
 
 
-                
-
-    
-            
-           
 #%% Functions
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
-    returns data as [time,trace]"""    
+    returns data as [time,trace]"""
     MData = sp.io.loadmat(filename)    #load matlab file
     output = []
     if filename == 't-cal.mat':
@@ -344,12 +340,12 @@ def remove_DC_offset(trace, zerofrom = 7460, zeroto = 7500):
 
 def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     """Shift the 0 offset of a time trace, returns [new time trace] and [time shift]
-    
-    Some time its better to define time shift from one trace and aply it to athers, 
+
+    Some time its better to define time shift from one trace and aply it to athers,
     since max or min value could be different, like in my case
-    
+
     -> You can define the time shift with a single line (timeshift = max(TimeData))
-    and feed it to this function as "timeZero", so no need to have two outputs 
+    and feed it to this function as "timeZero", so no need to have two outputs
     from this function.
     """
     #timeshift = max(timeData)
@@ -357,8 +353,8 @@ def timezero_shift(timeData, timeZero = 0, reverse = 'False'):
     timeData = timeData - timeZero
     if reverse:
         timeData = -timeData
-        
-    #return(newtimedata, timeshift) 
+
+    #return(newtimedata, timeshift)
     return(timeData)
 
 def quick_filter(trace, order = 2, cutfreq = 0.1):
@@ -370,14 +366,14 @@ def quick_filter(trace, order = 2, cutfreq = 0.1):
 def file_to_dict(filepath):
     """
     Convert file into Dictionary containing scan info and data
-    
+
     if file is not valid returns an empty dictionary
     """
-    DataDict = {}    
+    DataDict = {}
     filename  = os.path.basename(filepath)
-    #print(filename)    
+    #print(filename)
     ext = os.path.splitext(filename)[-1].lower()
-     
+
     if ext == ".mat" and not filename == 't-cal':
         DataDict = name_to_info(filepath)
         DataDict['data'] = import_file(filepath)
@@ -392,7 +388,7 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
         fileRange[1] = len(sourceDirectory)
         # pick scans to work on
     fileNames = os.listdir(sourceDirectory)[fileRange[0]:fileRange[1]]
-    
+
     DataDict = {}
     nGood, nBad = 0,0
     for item in fileNames:
@@ -402,7 +398,7 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
         #if not os.path.isdir(filepath) and
         if ext == ".mat" and not filename == 't-cal':
             DataDict[item] = file_to_dict(filepath) #returns nothing if file was not datafile.mat
-            if DataDict[item]: 
+            if DataDict[item]:
                 nGood += 1
                 DataDict[item]['data'] = import_file(filepath)
             else:
@@ -416,10 +412,10 @@ def dir_to_dict(sourceDirectory, fileRange = [0,0]):
 
 def save_trace(dataDict, directory, filename):
     """ Generate csv file with header"""
-    
+
     directory += '//'
     file = open(directory + filename, "w+")
-    
+
     parameters = ['Material',
             'Scan Date',
             'Other',
@@ -430,7 +426,7 @@ def save_trace(dataDict, directory, filename):
     # create Header
     u = 0
     for par in parameters:
-        
+
         string = str(dataDict[par])
         file.write(par + '\t' + string + '\t' +units[u]+ '\n')
         u += 1
@@ -441,14 +437,14 @@ def save_trace(dataDict, directory, filename):
         file.write(time + ',' + trace + '\n')
     print('done')
     file.close()
-        
-        
+
+
 def save_filtered_trace(dataDict, directory, filename, filtermultiplier):
     """ Generate csv file with header"""
-    
+
     directory += '//'
     file = open(directory + filename, "w+")
-    
+
     parameters = ['Material',
             'Scan Date',
             'Other',
@@ -459,42 +455,42 @@ def save_filtered_trace(dataDict, directory, filename, filtermultiplier):
     # create Header
     u = 0
     for par in parameters:
-        
+
         string = str(dataDict[par])
         file.write(par + '\t' + string + '\t' +units[u]+ '\n')
         u += 1
-    
-    
+
+
     time = dataDict['data'][0]
     # get filter cut of frequency
     nyqFreq = 0.5 * len(time) / time[-1]-time[0]
     filterFreq = nyqFreq*filtermultiplier
-    
+
     raw = dataDict['data'][1]
     #filter data
     filt = quick_filter(dataDict['data'][1], cutfreq = filtermultiplier)
-    
-    
+
+
     file.write('Filter frequency\t'+str(filterFreq)[0:4]+'THz\n')
     file.write('time\traw trace\tfilteredtrace\n')
-    
-  
-    
+
+
+
     for i in range(len(dataDict['data'][1])):
         stime = str(time[i])
         sraw = str(raw[i])
-        sfilt = str(filt[i])        
+        sfilt = str(filt[i])
         file.write(stime + ',' + sraw + ',' + sfilt + '\n')
     print('file ' + filename + ' is ready')
     file.close()
-    
+
 
 
 def quickPlot(sourceDirectory, cutfreq, KeyDependence = 'Temperature'):
-        
+
     dataDict = dir_to_dict(sourceDirectory)
     # initialize regualr plot
-    
+
     Title = KeyDependence + ' Dependence'
 
     fig = plt.figure(Title, figsize = (19,10))
@@ -506,21 +502,21 @@ def quickPlot(sourceDirectory, cutfreq, KeyDependence = 'Temperature'):
     plt1.tick_params(axis='x', labelsize=12)
     plt1.tick_params(axis='y', labelsize=12)
     color=iter(cm.rainbow(np.linspace(0,1,len(dataDict))))
-      
-    # Plot a "key" dependence from 
+
+    # Plot a "key" dependence from
     for key in dataDict:
         x = timezero_shift(dataDict[key]['data'][0], reverse = True)
-        y = quick_filter(remove_DC_offset(dataDict[key]['data'][1]), 
+        y = quick_filter(remove_DC_offset(dataDict[key]['data'][1]),
                             order = 2, cutfreq = cutfreq)
 
         col = next(color)
         plt1.plot(x,y, label = dataDict[key][KeyDependence], c=col)
-    
-        
+
+
     plt.show()
     plt.legend(bbox_to_anchor=(1.005, 1), loc='best', borderaxespad=0., ncol=1)
-    
-    
+
+
 def norm_to_pump(dataDict):
     """ Divide all curves in dataDict by it's pump power value"""
     dataDictNorm = dataDict
@@ -530,30 +526,30 @@ def norm_to_pump(dataDict):
         #rest = norm-dataDict[key]['data'][1][1]
         dataDictNorm[key]['data'][1] = norm
         #print('rest:  '+str(rest))
-        
+
     return(dataDictNorm)
 
 #%% filename interpreter
 
 def name_to_info(file):
-    """ 
+    """
     Interprets measurement parameters out of the file name
-    
+
     it understands the following:
     'Pump Power' : 'pu','pump',
     'Probe Power': 'pr','probe',
     'Temperature': 't','temp',
     'Destruction Power': 'd','dest',
-       
-    """   
+
+    """
     #lowercase file name without .* extension
-    FileName = ('.').join(os.path.basename(file).split('.')[:-1]) 
+    FileName = ('.').join(os.path.basename(file).split('.')[:-1])
     filenamex = FileName.lower()
     filename = filenamex.replace(',','.')
     #print(filename)
-    
+
     #errStr = FileName + ' contains no info about: '
-    
+
     #define parameter set
     parameterDict = {'Scan Date' : file_creation_date(file),
                      'Material'   : '-',
@@ -563,45 +559,45 @@ def name_to_info(file):
                      'Destruction Power': '-',
                      'Other': '-',
                      }
-    #set of possible indicators and corresponding key 
+    #set of possible indicators and corresponding key
     parInd = {'Pump Power' : ['pu','pump'],
               'Probe Power': ['pr','probe'],
               'Temperature': ['t','temp'],
               'Destruction Power': ['d','dest'],
               }
-    # Iterate over possible indicators and save value to corresponding key in 
+    # Iterate over possible indicators and save value to corresponding key in
     parameterIndicatorTrue = []
     for key, indicators in parInd.items():
         for string in indicators:
             if string in filename:
                 parameterIndicatorTrue.append(string)
-                # Partition string around parameter delimiter and pick the  
+                # Partition string around parameter delimiter and pick the
                 # first following float number
                 try:
-                    value = float(re.findall(r"\d+\.\d*", 
+                    value = float(re.findall(r"\d+\.\d*",
                                          filename.partition(string)[2])[0])
                 except IndexError:
                     pass
                 #append in Dictionary of parameters
-                
+
                 parameterDict[key] = value
     pos = 100
     for string in parameterIndicatorTrue:
        x = filename.find(string)
-       if x < pos: 
+       if x < pos:
            pos=x
-    
+
     parameterDict['Material'] = FileName[0:pos]
 
 #    if parameterDict['Material'][-1] in ['_','-']:
 #        parameterDict['Material'] = parameterDict['Material'][:-1]
 
-    
+
 
 #    except IndexError:
 #        print(FileName + ' contains no parameter info')
 #        pass
-        
+
     return(parameterDict)
 
 
@@ -620,9 +616,9 @@ def load_obj(name ):
 
 #%% run main
 if __name__ == "__main__":
-    main()    
-    
-    
-    
-    
-    
+    main()
+
+
+
+
+
