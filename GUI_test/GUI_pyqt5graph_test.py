@@ -13,7 +13,7 @@ if app is None:
 ## Define a top-level widget to hold everything
 w = QtGui.QWidget()
 w.move(400,100)
-w.showFullScreen()
+#w.showFullScreen()
 
 # change background color
 pg.setConfigOption('background', 'w')
