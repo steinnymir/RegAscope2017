@@ -61,7 +61,7 @@ Time=[]
 #angle.append(0)
 i=0
 while i<37 :
-    Names.append('Mn2Au-MA125-30mWhor-20mWvert-RT-1kAV-MOKE-samplerot-'+str(0+i*10)+'degree')
+    Names.append('E:\\2017-02-24\\Mn2Au-MA125-30mWhor-20mWvert-RT-1kAV-MOKE-samplerot-'+str(0+i*10)+'degree')
     i+=1
 PS=[]
 MData = io.loadmat(Names[1])
