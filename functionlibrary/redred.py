@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import re
 from matplotlib import cm
+import tkinter as tk
+from tkinter import filedialog
 
 #%%
 def main():
@@ -81,243 +83,9 @@ def main():
 #        
 #        ax1.plot(X,Yf)
 #        ax2.plot(X,Ynf)
-#%%
+
+#%% class for Redred/MOKE data
 class rrScan(object):
-    """ class defining a scan from redred setup
-        
-        Attributes
-        ----------
-        
-        time        : time axis [ps]
-        trace       : differential reflectivity axis
-        ftrace      : filtered differential reflectivity axis
-        
-        pumpPw      : pump power [mW]
-        probePw     : probe power [mW]
-        destPw      : destruction power [mW]
-        pumpSp      : pump spot diameter (FWHM gauss) [micrometer]
-        probeSp      : probe spot diameter (FWHM gauss) [micrometer]
-        temperature : temperature [K]
-        date        : scan date and time
-        material    : material name
-        R0          : non-pumped reflectivity of the sample
-    
-    """
-    
-    
-    def __init__(self):
-        """ 
-        Initialize the scan by defining time and differential reflectivity data
-        
-        Also define any other parameter as listed
-        """
-        
-        self.time = []
-        self.rawtrace = []
-        self.trace = []
-                
-        self.pumpPw = 0
-        self.probePw = 0
-        self.destrPw = 0
-        self.pumpSp = 0
-        self.probeSp = 0
-        self.temperature = 0
-        self.date = ''
-        self.material = ''
-        self.R0 = 0
-        self.filter = []
-        
-        self.analysisHistory = [] #keeps track of analysis changes performed
-        self.scanID = []
-        self.filename = []
-        self.parameters = {}
-        
-
-        
-    def initParameters(self):
-        """ Create a a dictionary of all parameters and a nameID for the scan"""
-        self.parameters = {'Pump Power': [self.pumpPw,'mW'],
-                       'Probe Power': [self.probePw,'mW'],
-                       'Destruction Power': [self.destrPw,'mW'],
-                       'Pump Spot': [self.pumpSp,'mum'],
-                       'Probe Spot': [self.probeSp,'mum'],
-                       'Temperature': [self.temperature,'K'],
-                       'R0': [self.R0,'']
-                       }        
-
-        if self.material:
-            self.scanID.append(self.material)
-        else:
-            self.scanID.append('UnknMat')
-        if self.date:
-            self.scanID.append(self.date)
-        if self.pumpPw != 0:
-            self.scanID.append('Pump' + str(self.pumpPw) + 'mW')
-        if self.destrPw != 0:
-            self.scanID.append('Dest' + str(self.destrPw) + 'mW')
-        if self.temperature != 0:
-            self.scanID.append('Temp' + str(self.temperature) + 'K')
-        self.filename = ' '.join(self.scanID)
-        self.filename = self.filename.replace(':','.')
-           
-    def shiftTime(self, tshift):
-        """ Shift time scale by tshift. Changes time zero"""
-        self.time = np.array(self.time) - tshift
-        self.analysisHistory.append('shift time')
-    
-    def flipTime(self):
-        """ Flip time scale: t = -t and order in the list 
-        (ensures growing time in list)"""
-        self.time = -self.time
-        #self.time = self.time[::-1]
-        #self.trace = self.trace[::-1]                
-        self.analysisHistory.append('flip time')
-    
-    def flipTrace(self):
-        """ Flip the trace, usually not needed"""
-        self.trace = -self.trace
-        self.analysisHistory.append('flip trace')
-
-    def removeDC(self):
-        """Remove DC offset defined by the average of the last 40 points on the scan"""
-        self.trace = self.trace - np.average(self.trace[7460:7500:1])
-        self.analysisHistory.append('removeDC')
-
-    def filterit(self, cutHigh = 0.1, order = 2):
-        """ apply simple low pass filter to data"""
-        b, a = spsignal.butter(order, cutHigh, 'low', analog= False)
-        self.trace = spsignal.lfilter(b,a,self.rawtrace)
-        self.filter = [cutHigh, order]
-        self.analysisHistory.append('filter')
-    
-    def filterFreq(self):
-        """ Gives low pass filter frequency in THz """
-        nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
-        return(nyqFreq * self.filter[0])
-    
-    def normToPump(self):
-        if self.pumpPw != 0:
-            self.trace = self.trace / self.pumpPw
-        self.analysisHistory.append('normalized to PumpPw')   
-
-
-#%%file managment        
-    
-    def importRawFile(self, file):
-        data = sp.io.loadmat(file)
-        try:
-            self.time = data['Daten'][2]
-            self.rawtrace = data['Daten'][0]
-            self.trace = self.rawtrace
-            self.R0 = data['DC'][0][0]
-            
-        except KeyError:
-            print(file + ' is not a valid redred scan datafile')
-        parDict = name_to_info(file)
-
-        for key in parDict:
-            if key == 'Scan Date':
-                self.date = parDict[key]
-            elif key == 'Pump Power':
-                self.pumpPw = parDict[key]
-            elif key == 'Probe Power':
-                self.probePw = parDict[key]
-            elif key == 'Temperature':
-                self.temperature = parDict[key]
-            elif key == 'Destruction Power':
-                self.destPw = parDict[key]
-            elif key == 'Material':
-                self.material = parDict[key]
-                #print(self.material)
-            elif key == 'Pump Spot':
-                self.pumpSp = parDict[key]                
-            elif key == 'Probe Spot':
-                self.probeSp = parDict[key]
-            elif key == 'Other':
-                self.other = parDict[key]
-            else:
-                print('Unidentified Key: ' + key)
-        
-
-        self.initParameters()
-
-        
-    def importCSV(self,file):
-        """ Read a CSV containing rrScan() data, and assign to self all the data"""
-        try:
-            file = open(file, 'r')
-        except FileNotFoundError:
-            print('ERROR 404: file not found')
-        if file:
-            metacounter=0
-            for l in file:
-                metacounter+=1
-                line = l.split('\t')
-                if 'material' in line: self.material = line[1]
-                elif 'Pump Power' in line: self.pumpPw = float(line[1])
-                elif 'Pump Spot' in line: self.pumpSp = float(line[1])
-                elif 'Probe Power' in line: self.probePw = float(line[1])    
-                elif 'Probe Spot' in line: self.probeSp = float(line[1])
-                elif 'date' in line: self.date = line[1]
-                elif 'Destruction Power' in line: self.destrPw = float(line[1])
-                elif 'R0' in line: self.R0 = float(line[1])
-                elif 'Temperature' in line: self.temperature = float(line[1])
-                elif 'RawData' in line : 
-                    break 
-                    print(metacounter)
-            file.seek(0)
-            for l in file:
-                if str.isdigit(l[0]) or l[0] == '-':
-                    line = l.split(',')
-                    self.time.append(float(line[0]))
-                    self.rawtrace.append(float(line[1]))
-                    self.trace.append(float(line[2].replace('\n','')))
-
-        file.close()
-
-        
-    def exportCSV(self, directory, overwrite = False):
-        """ save rrScan() to a file. it overwrites anything it finds"""
-
-        file = open(directory + self.filename + '.txt', 'w+')
-        
-        # Material:
-        file.write('Material:\t' + str(self.material) + '\n')
-        # Date:
-        file.write('Date:\t' + self.date + '\n')
-        # Parameters
-        file.write('------- Parameters -------\n\n')
-        for key in self.parameters:
-            if self.parameters[key][0] != 0:
-                file.write(key + '\t' + 
-                           str(self.parameters[key][0]) + '\t' +
-                           str(self.parameters[key][1]) + '\n' )
-        #filter info
-        if self.filter:
-            file.write('\nLow pass filter frequency:\t' + 
-                       str(self.filter) +'\t' +
-                       str(self.filterFreq()) + 
-                       'THz\n')
-        #data
-        file.write('---------- Data ----------\n\n')
-        file.write('Time\tRawData\tdata\n')
-        for i in range(len(self.trace)):
-            file.write(str(self.time[i])     + ',' +
-                       str(self.rawtrace[i]) + ',' +
-                       str(self.trace[i])    + '\n')
-            self.time = np.array(self.time)
-        file.close()
-                
-            
-        
-
-
-                
-
-    
-            
-#%% class for MOKE data
-class MOKEScan(object):
     """ class defining a scan from redred setup in MOKE configuration
         
         Attributes
@@ -339,6 +107,7 @@ class MOKEScan(object):
         date        : scan date and time
         material    : material name
         sampleOrient: Angle of the sample with respect to the vertical axis[deg]
+        R0          : non-pumped reflectivity of the sample
        
     
     """
@@ -367,6 +136,8 @@ class MOKEScan(object):
         self.probePol = 0
         self.sampleOrient = 0
         self.filter = []
+        self.R0 = 0
+        self.originalfilename=''
         
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []
@@ -386,6 +157,7 @@ class MOKEScan(object):
                        'Sample Orientation': [self.sampleOrient,'deg'],
                        'Probe Spot': [self.probeSp,'mum'],
                        'Temperature': [self.temperature,'K'],
+                        'R0': [self.R0,'']
                        }        
 
         if self.material:
@@ -403,6 +175,7 @@ class MOKEScan(object):
         self.filename = ' '.join(self.scanID)
         self.filename = self.filename.replace(':','.')
            
+    
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
@@ -493,7 +266,7 @@ class MOKEScan(object):
             else:
                 print('Unidentified Key: ' + key)
         
-
+        self.originalfilename=file
         self.initParameters()
 
         
@@ -570,8 +343,127 @@ class MOKEScan(object):
                 
 
     
+ #%%  class for multiple scans         
+class RRscans(object):
+    '''Contains multiple scans and methods to sort them and plot different grafs'''
+    
+    def __init__(self):
+        '''initilize list of scans and atributes'''
+        self.scans=[]#list of redred scans
+        self.samplename='samplename'
+        self.filenames=[]#list of the files to read
+        
+#%%import matlab files functions        
+    def addfilename(self, fullname):
+        '''add single filename to the list of the files to read'''
+        self.filenames.append(fullname)
+    
+    def addfilenamesfromfolder(self, directory):
+        '''add filenames from selected folder to the list of the files to read'''
+        newnames= os.listdir(directory)
+        for item in newnames:
+            self.addfilename(directory + item)
+    
+    def choosefile(self):
+        '''open dialog window to choose file to be added to the list of the files to read'''
+        root = tk.Tk()
+        root.withdraw()
+        filenames = filedialog.askopenfilenames()
+        for item in filenames:
+            self.addfilename(item)
+        
+    def choosefilesfromfolder(self):
+        '''open dialog window to choose folder with file to be added to the list of the files to read'''
+        root = tk.Tk()
+        root.withdraw()
+        dataDir = filedialog.askdirectory(initialdir = 'E://')
+        self.addfilenamesfromfolder(dataDir)
+    
+    def sortnames(self):
+        '''dump files that can't be read(not .mat files and t-cal.mat)'''
+        filenamesout=[]
+        for item in self.filenames:
+            ext = os.path.splitext(item)[-1].lower()
+            if ext == ".mat":
+                if item != 't-cal.mat':
+                    filenamesout.append(item)
+                else: print(item + ' was dumped')
+            lse: print(item + ' was dumped')
+            self.filenames = filenamesout
+
+    def importselectedfiles(self):
+        '''import all files from the list of names '''
+        for item in self.filenames:
+            scan=rrScan()
+            scan.importRawFile(item)
+            scan.quickplot()
+            self.scans.append(scan)
             
-                      
+    def definesampleorientforoldmokedata(self):
+        for item in self.scans:
+            item.sampleOrient=float(item.originalfilename[item.originalfilename.find('rot-')+4:item.originalfilename.find('degree')])
+#%%functions applying redred functions to every scan in the list
+            
+    def filteritall(self, cutHigh = 0.1, order = 2):
+        for item in self.scans:
+            item=item.filterit(cutHigh, order)
+    
+    def removeDCall(self):
+        for item in self.scans:
+            item=item.removeDC()
+            
+    def fliptimeall(self):
+        for item in self.scans:
+            item=item.flipTime()
+    
+    def fliptraceall(self):
+        for item in self.scans:
+            item=item.flipTrace
+            
+    def shiftTimeall(self, tshift):
+        for item in self.scans:
+            item=item.shiftTime(tshift)
+    
+    def initParametersall(self):
+        for item in self.scans:
+            item=item.initParameters()
+#%% plot functions
+    def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel= 'Time, ps', Zlabel='Kerr rotation (mrad)', colormap='viridis'):
+        '''plot 3d graf with time on X trace on Z and selected parametr on Y '''
+        #create 3 lists of X Y Z data
+        time=[]
+        trace=[]
+        ypar=[]
+        #for every scan object takes values
+        for item in self.scans:
+            time.append(item.time)
+            trace.append(item.trace)
+            #on Y axis will be chosen parameter which exist in scan object
+            ypar.append(item.parameters[Yparameter][0])
+        #Make proper arrays from lists with data
+        Ypar=[]
+        
+        for item in range(len(self.scans[0].time)):
+            
+            Ypar.append(ypar)
+            
+        X=np.array(time)
+        Y=np.transpose(np.array(Ypar))
+        Z=np.array(trace)
+        
+        fig = plt.figure(num=2)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=100, cmap=colormap)
+        ax.set_xlabel(Xlabel, fontsize=20, labelpad=20)
+        ax.tick_params(axis='x', labelsize=20)
+        ax.tick_params(axis='y', labelsize=20)
+        ax.tick_params(axis='z', labelsize=20)
+    
+        ax.set_ylabel(Yparameter, fontsize=20, labelpad=20)
+        ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
+        ax.set_title(title, fontsize=40)
+        plt.show()
+#%%                  
 #%% Functions
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
