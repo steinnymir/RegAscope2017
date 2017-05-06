@@ -20,35 +20,42 @@ from tkinter import filedialog
 
 
 class RRscans(object):
-    '''Contains multiple scans and methods to sort htem and plot different grafs'''
+    '''Contains multiple scans and methods to sort them and plot different grafs'''
     
     def __init__(self):
         '''initilize list of scans and atributes'''
-        self.scans=[]
+        self.scans=[]#list of redred scans
         self.samplename='samplename'
-        self.filenames=[]
+        self.filenames=[]#list of the files to read
         
+#%%import matlab files functions        
     def addfilename(self, fullname):
+        '''add single filename to the list of the files to read'''
         self.filenames.append(fullname)
     
     def addfilenamesfromfolder(self, directory):
+        '''add filenames from selected folder to the list of the files to read'''
         newnames= os.listdir(directory)
         for item in newnames:
             self.addfilename(directory + item)
     
     def choosefile(self):
+        '''open dialog window to choose file to be added to the list of the files to read'''
         root = tk.Tk()
         root.withdraw()
-        filename = filedialog.askdirectory(initialdir = 'E://')
-        self.addfilenamesfromfolder(dataDir)
+        filenames = filedialog.askopenfilenames()
+        for item in filenames:
+            self.addfilename(item)
         
     def choosefilesfromfolder(self):
+        '''open dialog window to choose folder with file to be added to the list of the files to read'''
         root = tk.Tk()
         root.withdraw()
         dataDir = filedialog.askdirectory(initialdir = 'E://')
         self.addfilenamesfromfolder(dataDir)
     
     def sortnames(self):
+        '''dump files that can't be read(not .mat files and t-cal.mat)'''
         filenamesout=[]
         for item in self.filenames:
             ext = os.path.splitext(item)[-1].lower()
@@ -60,6 +67,7 @@ class RRscans(object):
             self.filenames = filenamesout
 
     def importselectedfiles(self):
+        '''import all files from the list of names '''
         for item in self.filenames:
             scan=redred.MOKEScan()
             scan.importRawFile(item)
@@ -70,19 +78,45 @@ class RRscans(object):
             scan.shiftTime(-80)#should add findtimeshift function
             scan.sampleOrient=float(item[item.find('rot-')+4:item.find('degree')])
             scan.initParameters()
-            scan.quickplot()
+            scan.quickplot(clear=True)
             self.scans.append(scan)
-
+#%%functions applying redred functions to every scan in the list
+            
+    def filterall(self):
+        for item in self.scans:
+            item=item.filterit()
+    
+    def removeDCall(self):
+        for item in self.scans:
+            item=item.removeDC()
+            
+    def fliptimeall(self):
+        for item in self.scans:
+            item=item.flipTime()
+    
+    def fliptraceall(self):
+        for item in self.scans:
+            item=item.flipTrace
+            
+    def shiftTimeall(self, tshift):
+        for item in self.scans:
+            item=item.shiftTime(tshift)
+    
+    def initParametersall(self):
+        for item in self.scans:
+            item=item.initParameters()
+#%% plot functions
     def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel= 'Time, ps', Zlabel='Kerr rotation (mrad)', colormap='viridis'):
+        '''plot 3d graf with time on X trace on Z and selected parametr on Y '''
         #create 3 lists of X Y Z data
         time=[]
         trace=[]
         ypar=[]
-        #for every object with data take valuesee
+        #for every scan object takes values
         for item in self.scans:
             time.append(item.time)
             trace.append(item.trace)
-            #on Y axis will be chosen parameter which exist in data object
+            #on Y axis will be chosen parameter which exist in scan object
             ypar.append(item.parameters[Yparameter][0])
         #Make proper arrays from lists with data
         Ypar=[]
