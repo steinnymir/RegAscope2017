@@ -86,7 +86,7 @@ def main():
 
 #%% class for Redred/MOKE data
 class rrScan(object):
-    """ class defining a scan from redred setup in MOKE configuration
+    """ class defining a scan from redred setup 
         
         Attributes
         ----------
@@ -108,6 +108,7 @@ class rrScan(object):
         material    : material name
         sampleOrient: Angle of the sample with respect to the vertical axis[deg]
         R0          : non-pumped reflectivity of the sample
+        originalfilename : full path to the original imported file
        
     
     """
@@ -391,12 +392,12 @@ class RRscans(object):
             lse: print(item + ' was dumped')
             self.filenames = filenamesout
 
-    def importselectedfiles(self):
+    def importselectedfiles(self, plot=False):
         '''import all files from the list of names '''
         for item in self.filenames:
             scan=rrScan()
             scan.importRawFile(item)
-            scan.quickplot()
+            if plot: scan.quickplot()
             self.scans.append(scan)
             
     def definesampleorientforoldmokedata(self):
