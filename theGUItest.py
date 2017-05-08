@@ -57,12 +57,12 @@ class testGUI(QtWidgets.QWidget):
         layout.addWidget(self.importFileBtn, 18, 1, 1, 7)
 
         self.saveasCSVBtn = QPushButton('Save as CSV', self)
-        self.saveasCSVBtn.clicked.connect(self.test)
+        self.saveasCSVBtn.clicked.connect(self.nofunctionyet)
         layout.addWidget(self.saveasCSVBtn, 16, 24, 1, 5)
 
         self.saveFigure = QPushButton('Save Figure', self)
         #self.saveFigure.resize(self.clrButton.sizeHint())
-        self.saveFigure.clicked.connect(self.clearPlot)
+        self.saveFigure.clicked.connect(self.nofunctionyet)
         layout.addWidget(self.saveFigure, 18, 24, 1, 5)
 
         self.nameTxtbox = QLabel('File Name:', self)
@@ -70,7 +70,7 @@ class testGUI(QtWidgets.QWidget):
         layout.addWidget(self.nameTxtbox, 1, 1, 1, 7)
         self.nameTxtbox = QLineEdit(self)
         self.nameTxtbox.setPlaceholderText('file name')
-        self.nameTxtbox.editingFinished.connect(self.nameChanged)
+        self.nameTxtbox.editingFinished.connect(self.nofunctionyet)
         layout.addWidget(self.nameTxtbox, 2, 1, 1, 7)
 
         self.metadataTree_name = QLabel('Metadata:', self)
@@ -123,10 +123,15 @@ class testGUI(QtWidgets.QWidget):
         self.filterLowPassFreq.setPlaceholderText('freq')
         layout.addWidget(self.filterLowPassFreq, 16, 18, 1, 3)
         self.applyFilterBtn = QPushButton('Apply', self)
-        self.applyFilterBtn.clicked.connect(self.applyFilter)
+        self.applyFilterBtn.clicked.connect(self.nofunctionyet)
         layout.addWidget(self.applyFilterBtn, 18, 17, 1, 5)
 
 
+    def nofunctionyet(self):
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Warning)
+        self.msg.setText("No, this does nothing yet")
+        self.msg.show()
     def nameChanged(self, name):
 
         print(name)
