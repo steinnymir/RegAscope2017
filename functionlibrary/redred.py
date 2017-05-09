@@ -26,66 +26,53 @@ from tkinter import filedialog
 #%%
 def main():
 
-    """
-    use a test file to test most funnctions in this file
-
+    """ use a test file to test most funnctions in this file
     now set for norm_to_pump
-
     """
 
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data//'
-
     savepath = "E://DATA//RuCl3//Analysis//"
 
-#    scn1 = rrScan()
-#    scn1.importRawFile(testpath + testfile)
-#    #print(scn1.scanID)
-#    #print(scn1.time)
-#    scn1.flipTime()
-#    #print(scn1.time)
-#
-#    scn1.exportCSV(savepath)
-#    #print(scn1.parameters)
-#    #print(scn1.material)
-#
-#
-    scn2 = rrScan()
-    scn2.importCSV('..//test_data//RuCl3- 2017-04-19 17.33.14 Pump1.5mW Temp7.0K.txt')
-    time = scn2.time
-#    dataDict = dir_to_dict(testpath)
-#    print(dataDict[testfile]['data'][1]) # test dir_to_dict
-#
-#    dataDictNorm = norm_to_pump(dir_to_dict(testpath))
-#    print(dataDict[testfile]['data'][1]) # test dir_to_dict
-##    diff = dataDictNorm[testfile]['data'][1][1] - dataDict[testfile]['data'][1][1]
-##    print(diff)
-#
-#    fig = plt.figure("Raw Trace")
-#    plt.clf()
-#    ax1 = fig.add_subplot(211)
-#    ax2 = fig.add_subplot(212)
-#
-#    for key in dataDict:
-#        #print(str(dataDict[key]['Pump Power']))
-#        x = dataDict[key]['data'][0]
-#        X = timezero_shift(x, timeZero = 50, reverse = True)
-#
-#        y = dataDict[key]['data'][1]
-#        Y = quick_filter(y, order = 3, cutfreq = 0.01)
-#        Yf = remove_DC_offset(Y)
-#
-#        yn = dataDictNorm[key]['data'][1]
-#        Yn = quick_filter(yn, order = 3, cutfreq = 0.01)
-#        Ynf = remove_DC_offset(Yn)
-#
-#        ax1.plot(X,Yf)
-#        ax2.plot(X,Ynf)
+
+    scn = rrScan()
+    scn.importRawFile(testpath + testfile)
+
+    a = scn.fetchMetadata()
+    print(a)
 
 #%% class for Redred/MOKE data
+
 class rrScan(object):
     """
-    Class defining a scan from redred setup
+    Class defining a scan from redred setup.
+
+    Attributes:
+    -----------
+
+        self.time = []          # time data
+        self.rawtrace = []      # raw trace data
+        self.trace = []         # modified trace data
+
+        self.pumpPw = 0         # Pump Power [mW]
+        self.probePw = 0        # Probe Power [mW]
+        self.destrPw = 0        # Destruction Power [mW]
+        self.pumpSp = 0         # Pump beam spot size, FWHM [micrometers]
+        self.probeSp = 0        # Probe beam spot size, FWHM [micrometers]
+        self.temperature = 0    # Temperature [K]
+        self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
+        self.material = ''      # Material name
+        self.R0 = 0             # Static reflectivity
+        self.filter = []        # Filter parameters used for self.trace
+
+        self.sampleOrient = 0
+        self.pumpPol = 0
+        self.probePol = 0
+        self.originalfilename=''
+        self.analysisHistory = [] #keeps track of analysis changes performed
+        self.scanID = []        # list of parameters used in the name
+        self.filename = []      # String used as file name for saving data
+        self.parameters = {}    # Dictionary of all parameters, somewhat redundant?
 
     """
 
@@ -116,27 +103,50 @@ class rrScan(object):
         self.pumpPol = 0
         self.probePol = 0
         self.originalfilename=''
+
+
+        # analysis trackers
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []        # list of parameters used in the name
         self.filename = []      # String used as file name for saving data
         self.parameters = {}    # Dictionary of all parameters, somewhat redundant?
 
+        # Dictionary containing info about each metadata:
+        # units and relative class attribute name
+        self.metadataInfo = {'time' : ['Time Axis', 'ps'],
+                             'rawtrace' : ['Y axis', '?'],
+                             'trace' : ['Y axis', '?'],
+                             'pumpPw' : ['Pump Power', 'mW'],
+                             'probePw' : ['Probe Power', 'mW'],
+                             'destrPw' : ['Destruction Power', 'mW'],
+                             'pumpSp' : ['Pump Spot Size', 'microm'],
+                             'probeSp' : ['Probe Spot Size', sym('mu') + 'm'],
+                             'temperature' : ['Temperature', 'K'],
+                             'date' : ['Date', ''],
+                             'material' : ['Material', ''],
+                             'R0' : ['R0', ''],
+                             'filter' : ['Filter Frequency', 'NyqFreq Multiplier'],
+                             'sampleOrient' : ['Sample Orientation', 'rad'],
+                             'pumpPol' : ['Pump Polarization', 'rad'],
+                             'probePol' : ['Probe Polarization', 'rad'],
+                             'originalfilename' : ['Raw File Path', 'str'],
+                           }
 
 
     def initParameters(self):
         """ Create a a dictionary of all parameters and a nameID for the scan"""
         self.parameters = {'Pump Power': [self.pumpPw,'mW'],
-                       'Probe Power': [self.probePw,'mW'],
-                       'Destruction Power': [self.destrPw,'mW'],
-                       'Pump Spot': [self.pumpSp,'mum'],
-                       'Pump polarization': [self.pumpPol,'deg'],
-                       'Probe polarization': [self.probePol,'deg'],
-                       'Sample Orientation': [self.sampleOrient,'deg'],
-                       'Probe Spot': [self.probeSp,'mum'],
-                       'Temperature': [self.temperature,'K'],
-                        'R0': [self.R0,'']
-                       }        
-
+                           'Probe Power': [self.probePw,'mW'],
+                           'Destruction Power': [self.destrPw,'mW'],
+                           'Pump Spot': [self.pumpSp,'mum'],
+                           'Pump polarization': [self.pumpPol,'deg'],
+                           'Probe polarization': [self.probePol,'deg'],
+                           'Sample Orientation': [self.sampleOrient,'deg'],
+                           'Probe Spot': [self.probeSp,'mum'],
+                           'Temperature': [self.temperature,'K'],
+                           'R0': [self.R0,'']
+                           }
+        # generate scanID
         if self.material:
             self.scanID.append(self.material)
         else:
@@ -146,13 +156,50 @@ class rrScan(object):
         if self.pumpPw != 0:
             self.scanID.append('Pump' + str(self.pumpPw) + 'mW')
         if self.destrPw != 0:
-            self.scanID.append('Dest' + str(self.destrPw) + 'mW')
+            self.scanID.append('Destr' + str(self.destrPw) + 'mW')
         if self.temperature != 0:
             self.scanID.append('Temp' + str(self.temperature) + 'K')
         self.filename = ' '.join(self.scanID)
         self.filename = self.filename.replace(':','.')
-           
-    
+
+
+    def fetchMetadata(self):
+        """ Returns a dictionary containing all metadata information available"""
+
+        metadata = {}
+        var = self.__dict__
+        for key in var:
+            if key in self.metadataInfo:
+                if var[key] in [0, '', '-']:
+                    metadata[key] = var[key]
+
+        return(metadata)
+
+    def pushMetadata(self, dict):
+        """ Import metadata from dictionary
+        Dictionary keys must be full names, ex: "Pump Power", not PumpPw
+        """
+
+        self.pumpPw = dict['PumpPower']
+        self.probePw = dict['Probe Power']        # Probe Power [mW]
+        self.destrPw = dict['Destruction Power']        # Destruction Power [mW]
+        self.pumpSp = dict['Pump Spot Size']         # Pump beam spot size, FWHM [micrometers]
+        self.probeSp = dict['Probe Spot Size']        # Probe beam spot size, FWHM [micrometers]
+        self.temperature = dict['Temperature']    # Temperature [K]
+        self.date = dict['Date']          # Scan date in format YYYY-MM-DD hh.mm.ss
+        self.material = dict['Material']      # Material name
+        self.R0 = dict['R0']             # Static reflectivity
+        self.filter = dict['Filter Frequency']        # Filter parameters used for self.trace
+
+        self.sampleOrient = dict['Sample Orientation']
+        self.pumpPol = dict['Pump Polarization']
+        self.probePol = dict['Probe Polarization']
+        self.originalfilename = dict['Raw File Path']
+
+        self.analysisHistory = dict['Analysis History'] #keeps track of analysis changes performed
+
+
+
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
@@ -192,9 +239,12 @@ class rrScan(object):
     def normToPump(self):
         if self.pumpPw != 0:
             self.trace = self.trace / self.pumpPw
-        self.analysisHistory.append('normalized to PumpPw')   
-    
-    def quickplot(self, xlabel='Time, ps', ylabel='Kerr rotation', fntsize=20, title='Time depandance of the pump induced Kerr rotation', clear=False):
+        self.analysisHistory.append('normalized to PumpPw')
+
+    def quickplot(self, xlabel='Time, ps',
+                  ylabel='Kerr rotation', fntsize=20,
+                  title='Time depandance of the pump induced Kerr rotation',
+                  clear=False):
         if clear: plt.clf()
         quickplotfig=plt.figure(num=1)
         ax=quickplotfig.add_subplot(111)
@@ -207,8 +257,8 @@ class rrScan(object):
         plt.show()
 
 
-#%%file managment        
-    
+#%%file managment
+
     def importRawFile(self, file):
         data = sp.io.loadmat(file)
         try:
@@ -231,7 +281,7 @@ class rrScan(object):
             elif key == 'Temperature':
                 self.temperature = parDict[key]
             elif key == 'Destruction Power':
-                self.destPw = parDict[key]
+                self.destrPw = parDict[key]
             elif key == 'Material':
                 self.material = parDict[key]
                 #print(self.material)
@@ -243,7 +293,7 @@ class rrScan(object):
                 self.other = parDict[key]
             else:
                 print('Unidentified Key: ' + key)
-        
+
         self.originalfilename=file
         self.initParameters()
 
@@ -261,7 +311,7 @@ class rrScan(object):
             for l in f:
                 metacounter+=1
                 line = l.split('\t')
-                if 'material' in line: self.material = line[1]
+                if 'Material' in line: self.material = line[1]
                 elif 'Pump Power' in line: self.pumpPw = float(line[1])
                 elif 'Pump Spot' in line: self.pumpSp = float(line[1])
                 elif 'Probe Power' in line: self.probePw = float(line[1])
@@ -290,20 +340,9 @@ class rrScan(object):
                 self.time.append(data[i][1])
                 self.rawtrace.append(data[i][1])
                 self.trace.append(data[i][1])
-#            file.seek(0)
-#            for l in file:
-#                if str.isdigit(l[0]) or l[0] == '-':
-#                    line = l.split(',')
-#                    self.time.append(float(line[0]))
-#                    self.rawtrace.append(float(line[1]))
-#                    self.trace.append(float(line[2].replace('\n','')))
 
 
-
-
-
-
-    def exportCSV(self, directory, overwrite = False):
+    def exportCSV_old(self, directory):
         """ save rrScan() to a file. it overwrites anything it finds"""
 
         file = open(directory + self.filename + '.txt', 'w+')
@@ -335,31 +374,53 @@ class rrScan(object):
             self.time = np.array(self.time)
         file.close()
 
+    def exportCSV(self, directory):
+        """
+        save rrScan() to a file. it overwrites anything it finds
 
-                
+        Metadata is obtained from fetchMetadata(), resulting in all non0
+        parameters available.
+        """
+        file = open(directory + self.filename + '.txt', 'w+')
+        metadata = self.fetchMetadata()
+        for key in metadata:
+            name =  self.metadataInfo[key][0]
+            value = metadata[key]
+            unit = self.metadataInfo[key][1]
+            file.write(name + '/t' + value + '/t' + unit = '/n')
+        #data
+        file.write('++++++++++ Data ++++++++++\n\n')
+        file.write('Time\tRawData\tdata\n')
+        for i in range(len(self.time)):
+            file.write(str(self.time[i])     + ',' +
+                       str(self.rawtrace[i]) + ',' +
+                       str(self.trace[i])    + '\n')
+            self.time = np.array(self.time)
+        file.close()
 
-    
- #%%  class for multiple scans         
+
+
+ #%%  class for multiple scans
 class RRscans(object):
     '''Contains multiple scans and methods to sort them and plot different grafs'''
-    
+
     def __init__(self):
         '''initilize list of scans and atributes'''
         self.scans=[]#list of redred scans
         self.samplename='samplename'
         self.filenames=[]#list of the files to read
-        
-#%%import matlab files functions        
+
+#%%import matlab files functions
     def addfilename(self, fullname):
         '''add single filename to the list of the files to read'''
         self.filenames.append(fullname)
-    
+
     def addfilenamesfromfolder(self, directory):
         '''add filenames from selected folder to the list of the files to read'''
         newnames= os.listdir(directory)
         for item in newnames:
             self.addfilename(directory + item)
-    
+
     def choosefile(self):
         '''open dialog window to choose file to be added to the list of the files to read'''
         root = tk.Tk()
@@ -367,14 +428,14 @@ class RRscans(object):
         filenames = filedialog.askopenfilenames()
         for item in filenames:
             self.addfilename(item)
-        
+
     def choosefilesfromfolder(self):
         '''open dialog window to choose folder with file to be added to the list of the files to read'''
         root = tk.Tk()
         root.withdraw()
         dataDir = filedialog.askdirectory(initialdir = 'E://')
         self.addfilenamesfromfolder(dataDir)
-    
+
     def sortnames(self):
         '''dump files that can't be read(not .mat files and t-cal.mat)'''
         filenamesout=[]
@@ -394,32 +455,32 @@ class RRscans(object):
             scan.importRawFile(item)
             if plot: scan.quickplot()
             self.scans.append(scan)
-            
+
     def definesampleorientforoldmokedata(self):
         for item in self.scans:
             item.sampleOrient=float(item.originalfilename[item.originalfilename.find('rot-')+4:item.originalfilename.find('degree')])
 #%%functions applying redred functions to every scan in the list
-            
+
     def filteritall(self, cutHigh = 0.1, order = 2):
         for item in self.scans:
             item=item.filterit(cutHigh, order)
-    
+
     def removeDCall(self):
         for item in self.scans:
             item=item.removeDC()
-            
+
     def fliptimeall(self):
         for item in self.scans:
             item=item.flipTime()
-    
+
     def fliptraceall(self):
         for item in self.scans:
             item=item.flipTrace
-            
+
     def shiftTimeall(self, tshift):
         for item in self.scans:
             item=item.shiftTime(tshift)
-    
+
     def initParametersall(self):
         for item in self.scans:
             item=item.initParameters()
@@ -438,15 +499,15 @@ class RRscans(object):
             ypar.append(item.parameters[Yparameter][0])
         #Make proper arrays from lists with data
         Ypar=[]
-        
+
         for item in range(len(self.scans[0].time)):
-            
+
             Ypar.append(ypar)
-            
+
         X=np.array(time)
         Y=np.transpose(np.array(Ypar))
         Z=np.array(trace)
-        
+
         fig = plt.figure(num=2)
         ax = fig.add_subplot(111, projection='3d')
         ax.plot_surface(X, Y, Z, rstride=1, cstride=100, cmap=colormap)
@@ -454,12 +515,12 @@ class RRscans(object):
         ax.tick_params(axis='x', labelsize=20)
         ax.tick_params(axis='y', labelsize=20)
         ax.tick_params(axis='z', labelsize=20)
-    
+
         ax.set_ylabel(Yparameter, fontsize=20, labelpad=20)
         ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
         ax.set_title(title, fontsize=40)
         plt.show()
-#%%                  
+#%%
 #%% Functions
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
@@ -687,7 +748,7 @@ def name_to_info(file):
     'Pump Power' : 'pu','pump',
     'Probe Power': 'pr','probe',
     'Temperature': 't','temp',
-    'Destruction Power': 'd','dest',
+    'Destruction Power': 'd','dest','destr'
 
     """
     #lowercase file name without .* extension
@@ -711,7 +772,7 @@ def name_to_info(file):
     parInd = {'Pump Power' : ['pu','pump'],
               'Probe Power': ['pr','probe'],
               'Temperature': ['t','temp'],
-              'Destruction Power': ['d','dest'],
+              'Destruction Power': ['d','dest','destr'],
               }
     # Iterate over possible indicators and save value to corresponding key in
     parameterIndicatorTrue = []
@@ -728,8 +789,8 @@ def name_to_info(file):
                 except IndexError:
                     pass
                 #append in Dictionary of parameters
-                
-                
+
+
     pos = 100
     for string in parameterIndicatorTrue:
        x = filename.find(string)
@@ -763,6 +824,61 @@ def load_obj(name ):
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
+def sym(letter):
+    greek_alphabet = {
+    u'\u0391': 'Alpha',
+    u'\u0392': 'Beta',
+    u'\u0393': 'Gamma',
+    u'\u0394': 'Delta',
+    u'\u0395': 'Epsilon',
+    u'\u0396': 'Zeta',
+    u'\u0397': 'Eta',
+    u'\u0398': 'Theta',
+    u'\u0399': 'Iota',
+    u'\u039A': 'Kappa',
+    u'\u039B': 'Lamda',
+    u'\u039C': 'Mu',
+    u'\u039D': 'Nu',
+    u'\u039E': 'Xi',
+    u'\u039F': 'Omicron',
+    u'\u03A0': 'Pi',
+    u'\u03A1': 'Rho',
+    u'\u03A3': 'Sigma',
+    u'\u03A4': 'Tau',
+    u'\u03A5': 'Upsilon',
+    u'\u03A6': 'Phi',
+    u'\u03A7': 'Chi',
+    u'\u03A8': 'Psi',
+    u'\u03A9': 'Omega',
+    u'\u03B1': 'alpha',
+    u'\u03B2': 'beta',
+    u'\u03B3': 'gamma',
+    u'\u03B4': 'delta',
+    u'\u03B5': 'epsilon',
+    u'\u03B6': 'zeta',
+    u'\u03B7': 'eta',
+    u'\u03B8': 'theta',
+    u'\u03B9': 'iota',
+    u'\u03BA': 'kappa',
+    u'\u03BB': 'lamda',
+    u'\u03BC': 'mu',
+    u'\u03BD': 'nu',
+    u'\u03BE': 'xi',
+    u'\u03BF': 'omicron',
+    u'\u03C0': 'pi',
+    u'\u03C1': 'rho',
+    u'\u03C3': 'sigma',
+    u'\u03C4': 'tau',
+    u'\u03C5': 'upsilon',
+    u'\u03C6': 'phi',
+    u'\u03C7': 'chi',
+    u'\u03C8': 'psi',
+    u'\u03C9': 'omega',
+}
+    inv_map = {v: k for k, v in greek_alphabet.items()}
+    for key in inv_map:
+        if letter == key:
+            return(inv_map[key])
 #%% run main
 if __name__ == "__main__":
     main()
