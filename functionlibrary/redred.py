@@ -170,8 +170,14 @@ class rrScan(object):
         var = self.__dict__
         for key in var:
             if key in self.metadataInfo:
-                if var[key] in [0, '', '-']:
-                    metadata[key] = var[key]
+                if not key in ['time', 'trace', 'rawtrace']:
+                    try:
+                        if float(var[key]) != 0:
+                            metadata[key] = var[key]
+                    except ValueError:
+                        metadata[key] = var[key]
+                    except TypeError:
+                        metadata[key] = var[key]
 
         return(metadata)
 
@@ -383,11 +389,11 @@ class rrScan(object):
         """
         file = open(directory + self.filename + '.txt', 'w+')
         metadata = self.fetchMetadata()
-        for key in metadata:
-            name =  self.metadataInfo[key][0]
-            value = metadata[key]
-            unit = self.metadataInfo[key][1]
-            file.write(name + '/t' + value + '/t' + unit = '/n')
+#        for key in metadata:
+#            name =  str(self.metadataInfo[key][0])
+#            value = str(metadata[key])
+#            unit = str(self.metadataInfo[key][1])
+#            file.write(name + '/t' + value + '/t' + unit = '/n')
         #data
         file.write('++++++++++ Data ++++++++++\n\n')
         file.write('Time\tRawData\tdata\n')
