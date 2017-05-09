@@ -46,6 +46,9 @@ def main():
     scn2.importCSV(testpath + scn.filename + '.txt')
     scn2.quickplot()
 
+    scn2.chopEnds()
+    print(str(len(scn2.newtime)))
+
 #%% class for Redred/MOKE data
 
 class rrScan(object):
@@ -129,6 +132,8 @@ class rrScan(object):
                              'analysisHistory' : ['Analysis History', 'list'],
                              'other' : ['Additional Info', 'str']
                            }
+        self.newtime = []
+        self.newtrace = []
 
 
     def initParameters(self):
@@ -176,7 +181,7 @@ class rrScan(object):
 
         for key in var:
             if not key in ['time', 'trace', 'rawtrace', 'scanID',
-                           'metadataInfo', 'parameters', 'filename']:
+                           'metadataInfo', 'parameters', 'filename', 'newtime', 'newtrace']:
                 try:
                     if float(var[key]) != 0:
                         metadata[key] = var[key]
@@ -213,10 +218,41 @@ class rrScan(object):
 
 #%% scan manipulation
 
+    def chopEnds(self):
+        '''chops time scale to the monotonous central behaviour, deleting the wierd ends.
+        to be implemented still needs to modify also the trace array, or it wont work'''
+        maxT = max(self.time)
+        minT = min(self.time)
+        if self.time[0]<self.time[1]:
+            start=0
+            while self.time[start] < maxT:
+                start += 1
+            end = start
+            while self.time[end] > minT:
+                end += 1
+            print('From' + str(start) + 'to'+ str(end) + 'pos')
+            i=0
+            while i in range(end-start):
+                self.newtime.append(self.time[i+start])
+                self.newtrace.append(self.trace[i+start])
+                i += 1
+        elif self.time[0]>self.time[1]:
+            start=0
+            while self.time[start] > minT:
+                start += 1
+            end = start
+            while self.time[end] < maxT:
+                end += 1
+            print('From' + str(start) + 'to'+ str(end) + 'neg')
+            i=0
+            while i in range(end-start):
+                self.newtime.append(self.time[i+start])
+                self.newtrace.append(self.trace[i+start])
+                i += 1
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
-        self.analysisHistory.append('shift time by ' + tshift)
+        self.analysisHistory.append('shift time')
 
 
     def flipTime(self):
@@ -244,10 +280,14 @@ class rrScan(object):
         self.filter = cutHigh
         self.analysisHistory.append('filter')
 
+    def nyqistFreq(self):
+        """returns the Nyquist frequency from time data"""
+        return(abs(0.5 * len(self.time) / self.time[-1] - self.time[0]))
+
     def filterFreq(self):
         """ Gives low pass filter frequency in THz """
-        nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
-        return(nyqFreq * self.filter)
+        #nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
+        return(self.nyquistFreq * self.filter)
 
     def normToPump(self):
         """ Normalize scan by dividing by its pump power value"""
@@ -350,7 +390,6 @@ class rrScan(object):
                     elif 'Temperature' in line: self.temperature = float(line[1])
                     elif 'RawData' in line :
                         break
-                        print(metacounter)
                 f.close()
                 skipline = True
                 n=0
@@ -363,7 +402,7 @@ class rrScan(object):
                         skipline = False
                     except ValueError:
                         n+=1
-                    print(data)
+
                 for i in range(len(data)):
                     self.time.append(data[i][0])
                     self.rawtrace.append(data[i][1])
@@ -417,7 +456,7 @@ class rrScan(object):
         Metadata is obtained from fetchMetadata(), resulting in all non0
         parameters available.
         """
-        file = open(directory + self.filename + '.txt', 'w+')
+        file = open(directory + '//' + self.filename + '.txt', 'w+')
         metadata = self.fetchMetadata()
         parameter = ['','','']
 
@@ -451,6 +490,7 @@ class RRscans(object):
         self.filenames=[]#list of the files to read
 
 #%%import matlab files functions
+
     def addfilename(self, fullname):
         '''add single filename to the list of the files to read'''
         self.filenames.append(fullname)
@@ -501,19 +541,19 @@ class RRscans(object):
             item.sampleOrient=float(item.originalfilename[item.originalfilename.find('rot-')+4:item.originalfilename.find('degree')])
 #%%functions applying redred functions to every scan in the list
 
-    def filteritall(self, cutHigh = 0.1, order = 2):
+    def filterit(self, cutHigh = 0.1, order = 2):
         for item in self.scans:
             item=item.filterit(cutHigh, order)
 
-    def removeDCall(self):
+    def removeDC(self):
         for item in self.scans:
             item=item.removeDC()
 
-    def fliptimeall(self):
+    def fliptime(self):
         for item in self.scans:
             item=item.flipTime()
 
-    def fliptraceall(self):
+    def fliptrace(self):
         for item in self.scans:
             item=item.flipTrace
 
@@ -521,9 +561,11 @@ class RRscans(object):
         for item in self.scans:
             item=item.shiftTime(tshift)
 
-    def initParametersall(self):
+    def initParameters(self):
         for item in self.scans:
             item=item.initParameters()
+
+
 #%% plot functions
     def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel= 'Time, ps', Zlabel='Kerr rotation (mrad)', colormap='viridis'):
         '''plot 3d graf with time on X trace on Z and selected parametr on Y '''
@@ -562,6 +604,31 @@ class RRscans(object):
         plt.show()
 #%%
 #%% Functions
+
+def getFolder(initialdir = 'E://'):
+    root = tk.Tk()
+    root.withdraw()
+    dataDir = filedialog.askdirectory(initialdir = initialdir)
+    return(datadir)
+
+
+
+
+
+
+
+
+#%%
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+#                  old rubbish functions
+#
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
     returns data as [time,trace]"""
