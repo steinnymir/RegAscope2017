@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import re
 from matplotlib import cm
+import tkinter as tk
+from tkinter import filedialog
 
 #%%
 def main():
@@ -79,7 +81,8 @@ def main():
 #
 #        ax1.plot(X,Yf)
 #        ax2.plot(X,Ynf)
-#%%
+
+#%% class for Redred/MOKE data
 class rrScan(object):
     """
     Class defining a scan from redred setup
@@ -109,6 +112,10 @@ class rrScan(object):
         self.R0 = 0             # Static reflectivity
         self.filter = []        # Filter parameters used for self.trace
 
+        self.sampleOrient = 0
+        self.pumpPol = 0
+        self.probePol = 0
+        self.originalfilename=''
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []        # list of parameters used in the name
         self.filename = []      # String used as file name for saving data
@@ -122,10 +129,13 @@ class rrScan(object):
                        'Probe Power': [self.probePw,'mW'],
                        'Destruction Power': [self.destrPw,'mW'],
                        'Pump Spot': [self.pumpSp,'mum'],
+                       'Pump polarization': [self.pumpPol,'deg'],
+                       'Probe polarization': [self.probePol,'deg'],
+                       'Sample Orientation': [self.sampleOrient,'deg'],
                        'Probe Spot': [self.probeSp,'mum'],
                        'Temperature': [self.temperature,'K'],
-                       'R0': [self.R0,'']
-                       }
+                        'R0': [self.R0,'']
+                       }        
 
         if self.material:
             self.scanID.append(self.material)
@@ -141,7 +151,8 @@ class rrScan(object):
             self.scanID.append('Temp' + str(self.temperature) + 'K')
         self.filename = ' '.join(self.scanID)
         self.filename = self.filename.replace(':','.')
-
+           
+    
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
@@ -162,7 +173,7 @@ class rrScan(object):
         self.analysisHistory.append('flip trace')
 
     def removeDC(self):
-        """Remove DC offset defined by the average of the last 40 points on the scan"""
+        """Remove DC offset defined by the average of the last(which are the first) 40 points on the scan"""
         self.trace = self.trace - np.average(self.trace[7460:7500:1])
         self.analysisHistory.append('removeDC')
 
@@ -181,10 +192,23 @@ class rrScan(object):
     def normToPump(self):
         if self.pumpPw != 0:
             self.trace = self.trace / self.pumpPw
-        self.analysisHistory.append('normalized to PumpPw')
+        self.analysisHistory.append('normalized to PumpPw')   
+    
+    def quickplot(self, xlabel='Time, ps', ylabel='Kerr rotation', fntsize=20, title='Time depandance of the pump induced Kerr rotation', clear=False):
+        if clear: plt.clf()
+        quickplotfig=plt.figure(num=1)
+        ax=quickplotfig.add_subplot(111)
+        ax.plot(self.time, self.trace,)
+        ax.set_xlabel(xlabel, fontsize=fntsize)
+        ax.set_ylabel(ylabel, fontsize=fntsize)
+        ax.set_title(title,fontsize=fntsize)
+        ax.tick_params(axis='x', labelsize=fntsize)
+        ax.tick_params(axis='y', labelsize=fntsize)
+        plt.show()
 
-#%%file managment
 
+#%%file managment        
+    
     def importRawFile(self, file):
         data = sp.io.loadmat(file)
         try:
@@ -219,8 +243,8 @@ class rrScan(object):
                 self.other = parDict[key]
             else:
                 print('Unidentified Key: ' + key)
-
-
+        
+        self.originalfilename=file
         self.initParameters()
 
 
@@ -312,6 +336,130 @@ class rrScan(object):
         file.close()
 
 
+                
+
+    
+ #%%  class for multiple scans         
+class RRscans(object):
+    '''Contains multiple scans and methods to sort them and plot different grafs'''
+    
+    def __init__(self):
+        '''initilize list of scans and atributes'''
+        self.scans=[]#list of redred scans
+        self.samplename='samplename'
+        self.filenames=[]#list of the files to read
+        
+#%%import matlab files functions        
+    def addfilename(self, fullname):
+        '''add single filename to the list of the files to read'''
+        self.filenames.append(fullname)
+    
+    def addfilenamesfromfolder(self, directory):
+        '''add filenames from selected folder to the list of the files to read'''
+        newnames= os.listdir(directory)
+        for item in newnames:
+            self.addfilename(directory + item)
+    
+    def choosefile(self):
+        '''open dialog window to choose file to be added to the list of the files to read'''
+        root = tk.Tk()
+        root.withdraw()
+        filenames = filedialog.askopenfilenames()
+        for item in filenames:
+            self.addfilename(item)
+        
+    def choosefilesfromfolder(self):
+        '''open dialog window to choose folder with file to be added to the list of the files to read'''
+        root = tk.Tk()
+        root.withdraw()
+        dataDir = filedialog.askdirectory(initialdir = 'E://')
+        self.addfilenamesfromfolder(dataDir)
+    
+    def sortnames(self):
+        '''dump files that can't be read(not .mat files and t-cal.mat)'''
+        filenamesout=[]
+        for item in self.filenames:
+            ext = os.path.splitext(item)[-1].lower()
+            if ext == ".mat":
+                if item != 't-cal.mat':
+                    filenamesout.append(item)
+                else: print(item + ' was dumped')
+            lse: print(item + ' was dumped')
+            self.filenames = filenamesout
+
+    def importselectedfiles(self, plot=False):
+        '''import all files from the list of names '''
+        for item in self.filenames:
+            scan=rrScan()
+            scan.importRawFile(item)
+            if plot: scan.quickplot()
+            self.scans.append(scan)
+            
+    def definesampleorientforoldmokedata(self):
+        for item in self.scans:
+            item.sampleOrient=float(item.originalfilename[item.originalfilename.find('rot-')+4:item.originalfilename.find('degree')])
+#%%functions applying redred functions to every scan in the list
+            
+    def filteritall(self, cutHigh = 0.1, order = 2):
+        for item in self.scans:
+            item=item.filterit(cutHigh, order)
+    
+    def removeDCall(self):
+        for item in self.scans:
+            item=item.removeDC()
+            
+    def fliptimeall(self):
+        for item in self.scans:
+            item=item.flipTime()
+    
+    def fliptraceall(self):
+        for item in self.scans:
+            item=item.flipTrace
+            
+    def shiftTimeall(self, tshift):
+        for item in self.scans:
+            item=item.shiftTime(tshift)
+    
+    def initParametersall(self):
+        for item in self.scans:
+            item=item.initParameters()
+#%% plot functions
+    def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel= 'Time, ps', Zlabel='Kerr rotation (mrad)', colormap='viridis'):
+        '''plot 3d graf with time on X trace on Z and selected parametr on Y '''
+        #create 3 lists of X Y Z data
+        time=[]
+        trace=[]
+        ypar=[]
+        #for every scan object takes values
+        for item in self.scans:
+            time.append(item.time)
+            trace.append(item.trace)
+            #on Y axis will be chosen parameter which exist in scan object
+            ypar.append(item.parameters[Yparameter][0])
+        #Make proper arrays from lists with data
+        Ypar=[]
+        
+        for item in range(len(self.scans[0].time)):
+            
+            Ypar.append(ypar)
+            
+        X=np.array(time)
+        Y=np.transpose(np.array(Ypar))
+        Z=np.array(trace)
+        
+        fig = plt.figure(num=2)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=100, cmap=colormap)
+        ax.set_xlabel(Xlabel, fontsize=20, labelpad=20)
+        ax.tick_params(axis='x', labelsize=20)
+        ax.tick_params(axis='y', labelsize=20)
+        ax.tick_params(axis='z', labelsize=20)
+    
+        ax.set_ylabel(Yparameter, fontsize=20, labelpad=20)
+        ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
+        ax.set_title(title, fontsize=40)
+        plt.show()
+#%%                  
 #%% Functions
 def import_file(filename, content = 'Daten'):
     """Import data aquired with RedRed software
@@ -576,11 +724,12 @@ def name_to_info(file):
                 try:
                     value = float(re.findall(r"\d+\.\d*",
                                          filename.partition(string)[2])[0])
+                    parameterDict[key] = value
                 except IndexError:
                     pass
                 #append in Dictionary of parameters
-
-                parameterDict[key] = value
+                
+                
     pos = 100
     for string in parameterIndicatorTrue:
        x = filename.find(string)
