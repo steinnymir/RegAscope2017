@@ -32,14 +32,19 @@ def main():
 
     testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
     testpath = '..//test_data//'
-    savepath = "E://DATA//RuCl3//Analysis//"
+    savepath = "E://DATA//RuCl3//"
 
 
     scn = rrScan()
     scn.importRawFile(testpath + testfile)
 
-    a = scn.fetchMetadata()
-    print(a)
+    #print(scn.fetchMetadata())
+    scn2 = rrScan()
+    #print(scn2.fetchMetadata())
+    scn.exportCSV(testpath)
+    print(scn.filename)
+    scn2.importCSV(testpath + scn.filename + '.txt')
+    scn2.quickplot()
 
 #%% class for Redred/MOKE data
 
@@ -47,69 +52,60 @@ class rrScan(object):
     """
     Class defining a scan from redred setup.
 
+    Scan is composed by data as time, rawtrace and trace, where trace is the
+    filtered version of rawtrace.
+
+    Any transformation is applied both on trace and rawtrace, except for filtering.
+
+    To retrieve metadata info use xxx.fetchMetadata(), which gives a dictionary
+    containing all available metadata. Same function used to create headers of
+    save files (CSV).
+
     Attributes:
     -----------
 
-        self.time = []          # time data
-        self.rawtrace = []      # raw trace data
-        self.trace = []         # modified trace data
-
-        self.pumpPw = 0         # Pump Power [mW]
-        self.probePw = 0        # Probe Power [mW]
-        self.destrPw = 0        # Destruction Power [mW]
-        self.pumpSp = 0         # Pump beam spot size, FWHM [micrometers]
-        self.probeSp = 0        # Probe beam spot size, FWHM [micrometers]
-        self.temperature = 0    # Temperature [K]
-        self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
-        self.material = ''      # Material name
-        self.R0 = 0             # Static reflectivity
-        self.filter = []        # Filter parameters used for self.trace
-
-        self.sampleOrient = 0
-        self.pumpPol = 0
-        self.probePol = 0
-        self.originalfilename=''
-        self.analysisHistory = [] #keeps track of analysis changes performed
-        self.scanID = []        # list of parameters used in the name
-        self.filename = []      # String used as file name for saving data
-        self.parameters = {}    # Dictionary of all parameters, somewhat redundant?
+    Listed in __init__
 
     """
 
 
     def __init__(self):
         """
-        Initialize the scan by defining time and differential reflectivity data
+        Initialize object by defining attributes
 
-        Also define any other parameter as listed
+                   +++++++++++++++
+                   + Attributes: +
+                   +++++++++++++++
         """
-
+        # Data
         self.time = []          # time data
         self.rawtrace = []      # raw trace data
         self.trace = []         # modified trace data
-
+        # Metadata
+        self.material = ''      # Material name
+        self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
         self.pumpPw = 0         # Pump Power [mW]
         self.probePw = 0        # Probe Power [mW]
         self.destrPw = 0        # Destruction Power [mW]
         self.pumpSp = 0         # Pump beam spot size, FWHM [micrometers]
         self.probeSp = 0        # Probe beam spot size, FWHM [micrometers]
+        self.destrSp = 0        # Destruction beam spot size, FWHM [micrometers]
+        self.pumpPol = 0        # Pump beam polarization [deg], 0 = 12o'clock,
+                                # clockwise looking in direction of the beam
+        self.probePol = 0       # Probe beam polarization [degg], 0 = 12o'clock, clockwise
+        self.destrPol = 0       # Destruction beam polarization [degg], 0 = 12o'clock, clockwise
+        self.sampleOrient = 0   # Sample orientation, 0 = 12o'clock
         self.temperature = 0    # Temperature [K]
-        self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
-        self.material = ''      # Material name
         self.R0 = 0             # Static reflectivity
-        self.filter = []        # Filter parameters used for self.trace
-
-        self.sampleOrient = 0
-        self.pumpPol = 0
-        self.probePol = 0
-        self.originalfilename=''
-
-
-        # analysis trackers
+        self.filter = 0        # Filter parameters used for self.trace
+        # Analysis
+        self.originalfilename = '' #path to original raw file
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []        # list of parameters used in the name
-        self.filename = []      # String used as file name for saving data
-        self.parameters = {}    # Dictionary of all parameters, somewhat redundant?
+        self.filename = ''      # String used as file name for saving data
+
+#%% Metadata Manipulation
+        self.parameters = {}    # Dictionary of all parameters, see initParameters()
 
         # Dictionary containing info about each metadata:
         # units and relative class attribute name
@@ -130,6 +126,8 @@ class rrScan(object):
                              'pumpPol' : ['Pump Polarization', 'rad'],
                              'probePol' : ['Probe Polarization', 'rad'],
                              'originalfilename' : ['Raw File Path', 'str'],
+                             'analysisHistory' : ['Analysis History', 'list'],
+                             'other' : ['Additional Info', 'str']
                            }
 
 
@@ -159,57 +157,66 @@ class rrScan(object):
             self.scanID.append('Destr' + str(self.destrPw) + 'mW')
         if self.temperature != 0:
             self.scanID.append('Temp' + str(self.temperature) + 'K')
+        self.filename = ''
         self.filename = ' '.join(self.scanID)
         self.filename = self.filename.replace(':','.')
 
 
     def fetchMetadata(self):
-        """ Returns a dictionary containing all metadata information available"""
+        """ Returns a dictionary containing all metadata information available
+            keys are attribute names and values the corresponding value.
+
+            To get proper name from attribute name use
+            self.metadataInfo[attribute][0]
+            ex: self.metadataInfo['pumpPw'][0] -> 'Pump Power'
+        """
 
         metadata = {}
         var = self.__dict__
+
         for key in var:
-            if key in self.metadataInfo:
-                if not key in ['time', 'trace', 'rawtrace']:
-                    try:
-                        if float(var[key]) != 0:
-                            metadata[key] = var[key]
-                    except ValueError:
+            if not key in ['time', 'trace', 'rawtrace', 'scanID',
+                           'metadataInfo', 'parameters', 'filename']:
+                try:
+                    if float(var[key]) != 0:
                         metadata[key] = var[key]
-                    except TypeError:
+                except ValueError:
+                    if var[key] == '':
+                        pass
+                    else:
                         metadata[key] = var[key]
+                except TypeError:
+                    metadata[key] = var[key]
 
         return(metadata)
 
     def pushMetadata(self, dict):
-        """ Import metadata from dictionary
-        Dictionary keys must be full names, ex: "Pump Power", not PumpPw
         """
-
+        Import metadata from dictionary.
+        Dictionary keys must be proper names, ex: "Pump Power", not PumpPw
+        """
         self.pumpPw = dict['PumpPower']
-        self.probePw = dict['Probe Power']        # Probe Power [mW]
-        self.destrPw = dict['Destruction Power']        # Destruction Power [mW]
-        self.pumpSp = dict['Pump Spot Size']         # Pump beam spot size, FWHM [micrometers]
-        self.probeSp = dict['Probe Spot Size']        # Probe beam spot size, FWHM [micrometers]
-        self.temperature = dict['Temperature']    # Temperature [K]
-        self.date = dict['Date']          # Scan date in format YYYY-MM-DD hh.mm.ss
-        self.material = dict['Material']      # Material name
-        self.R0 = dict['R0']             # Static reflectivity
-        self.filter = dict['Filter Frequency']        # Filter parameters used for self.trace
-
+        self.probePw = dict['Probe Power']
+        self.destrPw = dict['Destruction Power']
+        self.pumpSp = dict['Pump Spot Size']
+        self.probeSp = dict['Probe Spot Size']
+        self.temperature = dict['Temperature']
+        self.date = dict['Date']
+        self.material = dict['Material']
+        self.R0 = dict['R0']
+        self.filter = dict['Filter Frequency']
         self.sampleOrient = dict['Sample Orientation']
         self.pumpPol = dict['Pump Polarization']
         self.probePol = dict['Probe Polarization']
         self.originalfilename = dict['Raw File Path']
+        self.analysisHistory = dict['Analysis History']
 
-        self.analysisHistory = dict['Analysis History'] #keeps track of analysis changes performed
-
-
+#%% scan manipulation
 
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
-        self.analysisHistory.append('shift time')
+        self.analysisHistory.append('shift time by ' + tshift)
 
 
     def flipTime(self):
@@ -221,7 +228,7 @@ class rrScan(object):
         self.analysisHistory.append('flip time')
 
     def flipTrace(self):
-        """ Flip the trace, usually not needed"""
+        """ Flip the Y trace, usually not needed from matlab redred software"""
         self.trace = -self.trace
         self.analysisHistory.append('flip trace')
 
@@ -234,15 +241,16 @@ class rrScan(object):
         """ apply simple low pass filter to data"""
         b, a = spsignal.butter(order, cutHigh, 'low', analog= False)
         self.trace = spsignal.lfilter(b,a,self.rawtrace)
-        self.filter = [cutHigh, order]
+        self.filter = cutHigh
         self.analysisHistory.append('filter')
 
     def filterFreq(self):
         """ Gives low pass filter frequency in THz """
         nyqFreq = abs(0.5 * len(self.time) / self.time[-1] - self.time[0])
-        return(nyqFreq * self.filter[0])
+        return(nyqFreq * self.filter)
 
     def normToPump(self):
+        """ Normalize scan by dividing by its pump power value"""
         if self.pumpPw != 0:
             self.trace = self.trace / self.pumpPw
         self.analysisHistory.append('normalized to PumpPw')
@@ -251,6 +259,7 @@ class rrScan(object):
                   ylabel='Kerr rotation', fntsize=20,
                   title='Time depandance of the pump induced Kerr rotation',
                   clear=False):
+        """Generates a quick simple plot with matplotlib """
         if clear: plt.clf()
         quickplotfig=plt.figure(num=1)
         ax=quickplotfig.add_subplot(111)
@@ -263,9 +272,16 @@ class rrScan(object):
         plt.show()
 
 
-#%%file managment
+#%% Import Export files
 
     def importRawFile(self, file):
+        """Import data from a raw .mat file generated by redred software.
+        Also fetches some metadata form file name through name_to_info().
+        Very mutch not universal.
+
+        Needs improvement"""
+
+        print('WARNING: importRawFile() needs some improvement...')
         data = sp.io.loadmat(file)
         try:
             self.time = data['Daten'][2]
@@ -307,49 +323,61 @@ class rrScan(object):
     def importCSV(self,file):
         """
         Read a CSV containing rrScan() data, and assign to self all the data
-        file should be a string of the whole path of the file"""
+        file should be a string of the whole path of the file
+
+        Could do with some improvement.
+        """
+
+
+        print('WARNING: importCSV() needs some improvement...')
+
         try:
             f = open(file, 'r')
+
+            if f:
+                metacounter=0
+                for l in f:
+                    metacounter+=1
+                    line = l.split('\t')
+                    if 'Material' in line: self.material = line[1]
+                    elif 'Pump Power' in line: self.pumpPw = float(line[1])
+                    elif 'Pump Spot' in line: self.pumpSp = float(line[1])
+                    elif 'Probe Power' in line: self.probePw = float(line[1])
+                    elif 'Probe Spot' in line: self.probeSp = float(line[1])
+                    elif 'date' in line: self.date = line[1]
+                    elif 'Destruction Power' in line: self.destrPw = float(line[1])
+                    elif 'R0' in line: self.R0 = float(line[1])
+                    elif 'Temperature' in line: self.temperature = float(line[1])
+                    elif 'RawData' in line :
+                        break
+                        print(metacounter)
+                f.close()
+                skipline = True
+                n=0
+                data = []
+
+                while skipline: # skip metadata section then import array of data
+                    try:
+                        data = np.loadtxt(file, delimiter=',', skiprows=n)
+                        n+=1
+                        skipline = False
+                    except ValueError:
+                        n+=1
+                    print(data)
+                for i in range(len(data)):
+                    self.time.append(data[i][0])
+                    self.rawtrace.append(data[i][1])
+                    self.trace.append(data[i][2])
         except FileNotFoundError:
-            print('ERROR 404: file not found')
-        if f:
-            metacounter=0
-            for l in f:
-                metacounter+=1
-                line = l.split('\t')
-                if 'Material' in line: self.material = line[1]
-                elif 'Pump Power' in line: self.pumpPw = float(line[1])
-                elif 'Pump Spot' in line: self.pumpSp = float(line[1])
-                elif 'Probe Power' in line: self.probePw = float(line[1])
-                elif 'Probe Spot' in line: self.probeSp = float(line[1])
-                elif 'date' in line: self.date = line[1]
-                elif 'Destruction Power' in line: self.destrPw = float(line[1])
-                elif 'R0' in line: self.R0 = float(line[1])
-                elif 'Temperature' in line: self.temperature = float(line[1])
-                elif 'RawData' in line :
-                    break
-                    print(metacounter)
-            f.close()
-            skipline = True
-            n=0
-            data = []
-
-            while skipline: # skip metadata section then import array of data
-                try:
-                    data = np.loadtxt(file, delimiter=',', skiprows=n)
-                    n+=1
-                    skipline = False
-                except ValueError:
-                    n+=1
-
-            for i in range(len(data)):
-                self.time.append(data[i][1])
-                self.rawtrace.append(data[i][1])
-                self.trace.append(data[i][1])
-
+                    print('ERROR 404: file not found')
 
     def exportCSV_old(self, directory):
-        """ save rrScan() to a file. it overwrites anything it finds"""
+        """
+        save rrScan() to a file. it overwrites anything it finds
+
+        Metadata is obtained from fetchMetadata(), resulting in all non0
+        parameters available.
+            """
 
         file = open(directory + self.filename + '.txt', 'w+')
 
@@ -382,18 +410,24 @@ class rrScan(object):
 
     def exportCSV(self, directory):
         """
-        save rrScan() to a file. it overwrites anything it finds
+        save rrScan() to a .txt file, in csv format (data only)
+        Metadata Header is in tab separated values, generated as
+        name /t value /t unit
 
         Metadata is obtained from fetchMetadata(), resulting in all non0
         parameters available.
         """
         file = open(directory + self.filename + '.txt', 'w+')
         metadata = self.fetchMetadata()
-#        for key in metadata:
-#            name =  str(self.metadataInfo[key][0])
-#            value = str(metadata[key])
-#            unit = str(self.metadataInfo[key][1])
-#            file.write(name + '/t' + value + '/t' + unit = '/n')
+        parameter = ['','','']
+
+        for key in metadata:
+            parameter[0] =  str(self.metadataInfo[key][0])
+            parameter[1] = str(metadata[key])
+            parameter[2] = str(self.metadataInfo[key][1])
+
+            file.write('\t'.join(parameter) + '\n')
+
         #data
         file.write('++++++++++ Data ++++++++++\n\n')
         file.write('Time\tRawData\tdata\n')
@@ -767,12 +801,12 @@ def name_to_info(file):
 
     #define parameter set
     parameterDict = {'Scan Date' : file_creation_date(file),
-                     'Material'   : '-',
-                     'Pump Power' : '-',
-                     'Probe Power': '-',
-                     'Temperature': '-',
-                     'Destruction Power': '-',
-                     'Other': '-',
+                     'Material'   : '',
+                     'Pump Power' : 0,
+                     'Probe Power': 0,
+                     'Temperature': 0,
+                     'Destruction Power': 0,
+                     'Other': '',
                      }
     #set of possible indicators and corresponding key
     parInd = {'Pump Power' : ['pu','pump'],
@@ -804,15 +838,6 @@ def name_to_info(file):
            pos=x
 
     parameterDict['Material'] = FileName[0:pos]
-
-#    if parameterDict['Material'][-1] in ['_','-']:
-#        parameterDict['Material'] = parameterDict['Material'][:-1]
-
-
-
-#    except IndexError:
-#        print(FileName + ' contains no parameter info')
-#        pass
 
     return(parameterDict)
 

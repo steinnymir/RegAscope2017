@@ -77,6 +77,7 @@ class testGUI(QtWidgets.QWidget):
         self.metadataTree_name.setFont(font)
         layout.addWidget(self.metadataTree_name, 3, 1)
         self.metadataTree = pg.DataTreeWidget()
+        #self.metadataTree.setHeaderItem()
         layout.addWidget(self.metadataTree, 4, 1, 13, 7)
 
         self.plotWidget_name = QLabel('Plot', self)
@@ -132,14 +133,15 @@ class testGUI(QtWidgets.QWidget):
         self.msg.setIcon(QMessageBox.Warning)
         self.msg.setText("No, this does nothing yet")
         self.msg.show()
-    def nameChanged(self, name):
 
+    def nameChanged(self, name):
         print(name)
 
     def test(self):
         txt = self.shiftTimeZero_input.text()
         num = float(txt)
         print(num)
+
     def setPlotWidget(self):
         ''' Create the widget for plotting scans and define it's properties'''
         pg.setConfigOptions(antialias=True)
@@ -150,31 +152,31 @@ class testGUI(QtWidgets.QWidget):
 #        pg.setConfigOption('foreground', 'k')
 
     def importFile(self):
-        self.filename = self.openFileNameDialog()
-        ext = os.path.splitext(self.filename)[-1].lower()
+        '''import a single file form either .mat or .txt (csv) format'''
+        filename = self.openFileNameDialog()
+        ext = os.path.splitext(filename)[-1].lower()
         if ext == ".mat":
-            self.loadScanRaw()
+            self.loadScanRaw(filename)
         elif ext == ".txt":
-            self.loadScanCSV()
+            self.loadScanCSV(filename)
         else:
             print("wrong file type, please try again")
 
-    def loadScanCSV(self):
+    def loadScanCSV(self, filename):
 
         #filename = self.openFileNameDialog()
         self.scanData = rr.rrScan()
-        self.scanData.importCSV(self.filename)
+        self.scanData.importCSV(filename)
         self.scanData.initParameters()
-        print(self.scanData.parameters)
         self.fetchMetadata()
         self.plotScanData()
 
 
-    def loadScanRaw(self):
+    def loadScanRaw(self, filename):
 
         #filename = self.openFileNameDialog()
         self.scanData = rr.rrScan()
-        self.scanData.importRawFile(self.filename)
+        self.scanData.importRawFile(filename)
         self.scanData.initParameters()
         print(self.scanData.parameters)
         #self.tree.addChild(self.scanData.parameters)
@@ -199,8 +201,9 @@ class testGUI(QtWidgets.QWidget):
             self.plotWidget.clear()
 
     def fetchMetadata(self):
-        self.metadataTree.setData(self.scanData.parameters)
-
+        '''retrieve metadata from rrScan() and write it in metadataTree'''
+        self.metadataTree.setData(self.scanData.fetchMetadata(), hideRoot=True)
+        print(self.metadataTree.headerItem())
 #%% Scan Modifcations
 
     def flipX(self):
