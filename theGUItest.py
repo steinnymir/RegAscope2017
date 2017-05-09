@@ -57,7 +57,7 @@ class testGUI(QtWidgets.QWidget):
         layout.addWidget(self.importFileBtn, 18, 1, 1, 7)
 
         self.saveasCSVBtn = QPushButton('Save as CSV', self)
-        self.saveasCSVBtn.clicked.connect(self.nofunctionyet)
+        self.saveasCSVBtn.clicked.connect(self.saveasCSV)
         layout.addWidget(self.saveasCSVBtn, 16, 24, 1, 5)
 
         self.saveFigure = QPushButton('Save Figure', self)
@@ -65,7 +65,7 @@ class testGUI(QtWidgets.QWidget):
         self.saveFigure.clicked.connect(self.nofunctionyet)
         layout.addWidget(self.saveFigure, 18, 24, 1, 5)
 
-        self.nameTxtbox = QLabel('File Name:', self)
+        self.nameTxtbox = QLabel('Series Name:', self)
         self.nameTxtbox.setFont(font)
         layout.addWidget(self.nameTxtbox, 1, 1, 1, 7)
         self.nameTxtbox = QLineEdit(self)
@@ -95,12 +95,12 @@ class testGUI(QtWidgets.QWidget):
         self.flipXcb.clicked.connect(self.flipX)
         layout.addWidget(self.flipXcb, 16, 10)
 
-        self.flipYcb = QPushButton('Flip y', self)
-        self.flipYcb.clicked.connect(self.flipY)
-        layout.addWidget(self.flipYcb, 17, 10)
+        self.remDCcb = QPushButton('Remove DC', self)
+        self.remDCcb.clicked.connect(self.removeDC)
+        layout.addWidget(self.remDCcb, 17, 10)
 
-        self.shiftXcb = QPushButton('Shift Time Zero', self)
-        self.flipXcb.clicked.connect(self.setTimeZero)
+        self.shiftXcb = QPushButton('Set Time Zero', self)
+        self.shiftXcb.clicked.connect(self.setTimeZero)
         layout.addWidget(self.shiftXcb, 18, 10)
 
         self.timeZero = 0
@@ -122,9 +122,10 @@ class testGUI(QtWidgets.QWidget):
         layout.addWidget(self.filterLowPassFreq_name, 16,17)
         self.filterLowPassFreq = QLineEdit(self)
         self.filterLowPassFreq.setPlaceholderText('freq')
+        self.filterLowPassFreq.returnPressed.connect(self.applyFilter)
         layout.addWidget(self.filterLowPassFreq, 16, 18, 1, 3)
         self.applyFilterBtn = QPushButton('Apply', self)
-        self.applyFilterBtn.clicked.connect(self.nofunctionyet)
+        self.applyFilterBtn.clicked.connect(self.applyFilter)
         layout.addWidget(self.applyFilterBtn, 18, 17, 1, 5)
 
 
@@ -184,21 +185,7 @@ class testGUI(QtWidgets.QWidget):
         self.fetchMetadata()
         self.plotScanData()
 
-    def plotScanData(self):
-        """ clears the graph and plots a fresh graph from scanData"""
-        self.plotWidget.clear()
-        x = self.scanData.time
-        y = self.scanData.trace
-        self.plot = self.plotWidget.plot(x,y, pen=(255,0,0))
 
-    def clearPlot(self):
-        """clears all graphs from plot, after asking confermation"""
-        reply = QMessageBox.question(self, 'Message',
-            "Are you sure you want to clear the graph completely?", QMessageBox.Yes |
-            QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            self.plotWidget.clear()
 
     def fetchMetadata(self):
         '''retrieve metadata from rrScan() and write it in metadataTree'''
@@ -230,27 +217,55 @@ class testGUI(QtWidgets.QWidget):
         self.plotScanData()
 
     def setTimeZero(self):
+        '''set value given in shiftTimeZero_input() as new time zero'''
         txt = self.shiftTimeZero_input.text()
         num = float(txt)
-
         self.scanData.shiftTime(-self.timeZero)
         self.timeZero = num
         self.scanData.shiftTime(self.timeZero)
-
         self.plotScanData()
 
 
 
     def applyFilter(self):
-        pass
+        '''get filter frequency from textbox and apply the filter to a single scan'''
+        freq = float(self.filterLowPassFreq.text())
+        self.scanData.trace = self.scanData.rawtrace
+        nyqfreq = self.scanData.nyqistFreq()
+
+        if freq != 0 and freq < nyqfreq:
+
+            cutfactor = freq / nyqfreq
+            self.scanData.filterit(cutHigh=cutfactor)
+
+        self.plotScanData()
+
+    def removeDC(self):
+        self.scanData.removeDC()
+        self.plotScanData()
 
 
 
 
+#%% Plots
+    def plotScanData(self):
+        """ clears the graph and plots a fresh graph from scanData"""
+        self.plotWidget.clear()
+        x = self.scanData.time
+        y = self.scanData.trace
+        self.plot = self.plotWidget.plot(x,y, pen=(255,0,0))
 
+    def clearPlot(self):
+        """clears all graphs from plot, after asking confermation"""
+        reply = QMessageBox.question(self, 'Message',
+            "Are you sure you want to clear the graph completely?", QMessageBox.Yes |
+            QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.plotWidget.clear()
 
     def plotDataTest(self):
-        """ plot curves in the plot widget"""
+        """ plot a test curve in the plot widget"""
         x = np.arange(0,1000,1)
         noise = np.random.normal(0,1,1000)/1
         y = np.sin(x/10)+noise
@@ -258,13 +273,15 @@ class testGUI(QtWidgets.QWidget):
         self.plot = self.plotWidget.plot(x,y, color='g')
 
 
+#%% import export
 
-    def plotData(self):
-        """ plot curves in the plot widget"""
-        x = self.scanData.time
-        y = self.scanData.trace
-        self.plot = self.plotWidget.plot(x,y, color='b')
+    def saveasCSV(self):
+        '''save object rrScan() to csv'''
+        savedir = rr.getFolder()
+        print(savedir)
+        self.scanData.exportCSV(savedir)
 
+#%% other
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -280,31 +297,6 @@ class testGUI(QtWidgets.QWidget):
             string = 'no'
         self.statusBar().showMessage(string)
 
-#    def closeEvent(self, event):
-#        """ to ask confermation when quitting program"""
-#
-#        reply = QMessageBox.question(self, 'Message',
-#            "Are you sure to quit?", QMessageBox.Yes |
-#            QMessageBox.No, QMessageBox.No)
-#
-#        if reply == QMessageBox.Yes:
-#            event.accept()
-#        else:
-#            event.ignore()
-
-
-#%%other functions
-
-    @pyqtSlot()
-    def on_click(self):
-        textboxValue = self.textbox.text()
-        QMessageBox.question(self, 'Message', "You typed: " + textboxValue, QMessageBox.Ok, QMessageBox.Ok)
-        self.textbox.setText("")
-
-    def getText(self):
-        text, okPressed = QInputDialog.getText(self, "Get text","Your name:", QLineEdit.Normal, "")
-        if okPressed and text != '':
-            print(text)
 
 
 if __name__ == '__main__':
