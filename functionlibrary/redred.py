@@ -63,8 +63,11 @@ class rrScan(object):
     """
     Class defining a scan from redred setup.
 
-    Scan is composed by data as time, rawtrace and trace, where trace is the
-    filtered version of rawtrace.
+    Scan is composed by raw data as rawtime rawtrace and amalysed
+    data as time and trace.
+    This comes from the non monotonous behaviour of the time scale
+    in raw data, and allows for storage of analysed and raw data simultaneously,
+    allowing for better reproducibility.
 
     Any transformation is applied both on trace and rawtrace, except for filtering.
 
@@ -95,6 +98,8 @@ class rrScan(object):
         # Metadata
         self.material = ''      # Material name
         self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
+        self.originalfilename = '' #path to original raw file
+
         self.pumpPw = 0         # Pump Power [mW]
         self.probePw = 0        # Probe Power [mW]
         self.destrPw = 0        # Destruction Power [mW]
@@ -108,9 +113,9 @@ class rrScan(object):
         self.sampleOrient = 0   # Sample orientation, 0 = 12o'clock
         self.temperature = 0    # Temperature [K]
         self.R0 = 0             # Static reflectivity
-        self.filter = 0        # Filter parameters used for self.trace
+
         # Analysis
-        self.originalfilename = '' #path to original raw file
+        self.filter = 0        # Filter parameters used for self.trace
         self.analysisHistory = [] #keeps track of analysis changes performed
         self.scanID = []        # list of parameters used in the name
         self.filename = ''      # String used as file name for saving data
@@ -1094,10 +1099,10 @@ def sym(letter):
     for key in inv_map:
         if letter == key:
             return(inv_map[key])
+
 #%% run main
 if __name__ == "__main__":
     main()
-
 
 
 
