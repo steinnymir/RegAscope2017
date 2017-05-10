@@ -152,38 +152,7 @@ class testGUI(QtWidgets.QWidget):
 #        pg.setConfigOption('background', 'w')
 #        pg.setConfigOption('foreground', 'k')
 
-    def importFile(self):
-        '''import a single file form either .mat or .txt (csv) format'''
-        filename = self.openFileNameDialog()
-        ext = os.path.splitext(filename)[-1].lower()
-        if ext == ".mat":
-            self.loadScanRaw(filename)
-        elif ext == ".txt":
-            self.loadScanCSV(filename)
-        else:
-            print("wrong file type, please try again")
 
-    def loadScanCSV(self, filename):
-
-        #filename = self.openFileNameDialog()
-        self.scanData = rr.rrScan()
-        self.scanData.importCSV(filename)
-        self.scanData.initParameters()
-        self.fetchMetadata()
-        self.plotScanData()
-
-
-    def loadScanRaw(self, filename):
-
-        #filename = self.openFileNameDialog()
-        self.scanData = rr.rrScan()
-        self.scanData.importRawFile(filename)
-        self.scanData.initParameters()
-        print(self.scanData.parameters)
-        #self.tree.addChild(self.scanData.parameters)
-#        self.plotData()
-        self.fetchMetadata()
-        self.plotScanData()
 
 
 
@@ -274,6 +243,46 @@ class testGUI(QtWidgets.QWidget):
 
 
 #%% import export
+
+    def importFile(self):
+        '''import a single file form either .mat or .txt (csv) format'''
+        self.scanData = rr.rrScan()
+        filename = self.openFileNameDialog()
+        self.scanData.importFile(filename)
+        self.scanData.initParameters()
+        self.fetchMetadata()
+        self.plotScanData()
+
+#        ext = os.path.splitext(filename)[-1].lower()
+#        if ext == ".mat":
+#            self.loadScanRaw(filename)
+#        elif ext == ".txt":
+#            self.loadScanCSV(filename)
+#        else:
+#            print("wrong file type, please try again")
+
+    def loadScanCSV(self, filename):
+
+        #filename = self.openFileNameDialog()
+        self.scanData = rr.rrScan()
+        self.scanData.importCSV(filename)
+        self.scanData.initParameters()
+        self.fetchMetadata()
+        self.plotScanData()
+
+
+    def loadScanRaw(self, filename):
+
+        #filename = self.openFileNameDialog()
+        self.scanData = rr.rrScan()
+        self.scanData.importRawFile(filename)
+        self.scanData.initParameters()
+        print(self.scanData.parameters)
+        #self.tree.addChild(self.scanData.parameters)
+#        self.plotData()
+        self.fetchMetadata()
+        self.plotScanData()
+
 
     def saveasCSV(self):
         '''save object rrScan() to csv'''
