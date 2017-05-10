@@ -720,15 +720,13 @@ class rrScans(object):
         plt.show()
 
 
-
-
 #%% Functions
 
-def getFolder(initialdir = 'E://'):
+def chooseFolder(initialdir = 'E://'):
     root = tk.Tk()
     root.withdraw()
     dataDir = filedialog.askdirectory(initialdir = initialdir)
-    return(datadir)
+    return(dataDir)
 
 
 
