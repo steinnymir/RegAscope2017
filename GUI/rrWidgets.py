@@ -23,24 +23,24 @@ class rrScanImport(qw.QWidget):
     """ """
     def __init__(self):
         super().__init__()
-#        self.title = 'the GUI test'
-#        self.left = 300
-#        self.top = 100
-#        self.width = 1400
-#        self.height = 900
+        self.title = 'the GUI test'
+        self.left = 300
+        self.top = 100
+        self.width = 1400
+        self.height = 900
         self.initUI()
 
 
     def initUI(self):
         """ Generate GUI layout """
-#        self.setWindowTitle(self.title)
-#        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
-        self.setLayout_ImportScan()
+        self.makeLayout()
         self.show()
 
 
-    def setLayout_ImportScan(self):
+    def makeLayout(self):
         """ Generate the GUI layout """
 
         layout = qg.QGridLayout() # create a grid for subWidgets
@@ -48,7 +48,6 @@ class rrScanImport(qw.QWidget):
         self.setLayout(layout)
 
         font = qg.QFont()
-        #font.setFamily(_fromUtf8("FreeMono"))
         font.setBold(True)
         font.setPixelSize(15)
 
@@ -76,7 +75,7 @@ class rrScanImport(qw.QWidget):
         layout.addWidget(self.nameTxtbox, 2, 1, 1, 7)
 
         self.metadataTree_name = qw.QLabel('Metadata:', self)
-        self.metadataTree_name.setFont(font)
+#        self.metadataTree_name.setFont(font)
 #        layout.addWidget(self.metadataTree_name, 3, 1)
         self.metadataTree = pg.DataTreeWidget()
         #self.metadataTree.setHeaderItem()
@@ -126,9 +125,12 @@ class rrScanImport(qw.QWidget):
 
 #        self.filterBox = QGroupBox('filter', self)
 #        layout.addWidget(self.filterBox, 15, 17, 3, 3)
+#        self.makeFilterBox(layout=layout)
+#
+#    def makeFilterBox(self, layout):
 
         self.filterBox_name = qw.QLabel('Filter', self)
-        self.filterBox_name.setFont(font)
+#        self.filterBox_name.setFont(font)
         layout.addWidget(self.filterBox_name, 15, 17)
         self.filterLowPassFreq_name = qw.QLabel('Frequency [THz]', self)
         layout.addWidget(self.filterLowPassFreq_name, 16,17)
@@ -334,8 +336,12 @@ if __name__ == '__main__':
             app = qg.QApplication(sys.argv)
 
         prg = rrScanImport()
+        prg.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        pg.setConfigOption('background', 0.1)
+        pg.setConfigOption('foreground', 0.7)
         prg.show()
         app.exec_()
+
     else:
         #run master file script
         exec(open("../GUI_multiscan.py").read())

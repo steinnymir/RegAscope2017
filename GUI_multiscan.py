@@ -52,6 +52,8 @@ class MainWindow(qw.QMainWindow):
         layout.addWidget(self.test,0,0)
         self.setCentralWidget(self.test)
 
+
+
         self.show()
 
 
