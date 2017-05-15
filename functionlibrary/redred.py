@@ -151,6 +151,7 @@ class rrScan(object):
 
     def initParameters(self):
         """ Create a a dictionary of all parameters and a nameID for the scan"""
+
         self.parameters = {'Pump Power': [self.pumpPw,'mW'],
                            'Probe Power': [self.probePw,'mW'],
                            'Destruction Power': [self.destrPw,'mW'],
@@ -268,6 +269,7 @@ class rrScan(object):
                 self.newtime.append(self.time[i+start])
                 self.newtrace.append(self.trace[i+start])
                 i += 1
+
     def shiftTime(self, tshift):
         """ Shift time scale by tshift. Changes time zero"""
         self.time = np.array(self.time) - tshift
@@ -588,7 +590,7 @@ class rrScans(object):
         if isinstance(files, str):
             self.scans.append(rrScan())
             self.scans[-1].importFile(files)
-            print('Imported file' + file)
+            print('Imported file' + files)
         elif isinstance(files, list):
             for i in range(len(files)):
                 self.scans.append(rrScan())
