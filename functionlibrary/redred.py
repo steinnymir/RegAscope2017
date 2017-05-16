@@ -30,29 +30,46 @@ def main():
     now set for norm_to_pump
     """
 
-    testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
-    testpath = '..//test_data//'
+#    testfile = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat'
+#    testpath = '..//test_data//'
+#    savepath = "E://DATA//RuCl3//"
+#
+#    singlefile = testpath + testfile
+#
+#    scns = rrScans()
+#    filelist = ['RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat',
+#                'RuCl3-Pr-0.5mW-Pu-1.5mW-T-006.0k-1kAVG.mat']
+#
+#    filelist2 = ['RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat',
+#                'RuCl3-Pr-0.5mW-Pu-1.5mW-T-008.0k-1kAVG.mat']
+#
+#    for i in range(len(filelist)):
+#        filelist[i] = testpath + filelist[i]
+#    for i in range(len(filelist2)):
+#        filelist2[i] = testpath + filelist2[i]
+#
+#    scns.importFiles(filelist)
+#    scns.importFiles(filelist2, append=True)
+#    print(scns.scanList)
+#
+#    print(scns.get_dependence_parameter())
+
+    testmat = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat'
+    testcsv = 'RuCl3- 2017-04-19 17.33.14 Pump1.5mW Temp7.0K.txt'
+    testpath = '..//test_scripts//test_data//'
     savepath = "E://DATA//RuCl3//"
 
-    singlefile = testpath + testfile
+    matfile = testpath + testmat
+    csvfile = testpath + testcsv
 
-    scns = rrScans()
-    filelist = ['RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat',
-                'RuCl3-Pr-0.5mW-Pu-1.5mW-T-006.0k-1kAVG.mat']
 
-    filelist2 = ['RuCl3-Pr-0.5mW-Pu-1.5mW-T-007.0k-1kAVG.mat',
-                'RuCl3-Pr-0.5mW-Pu-1.5mW-T-008.0k-1kAVG.mat']
+    scan1 = rrScan()
+    scan2 = rrScan()
+    scan1.importFile(matfile)
 
-    for i in range(len(filelist)):
-        filelist[i] = testpath + filelist[i]
-    for i in range(len(filelist2)):
-        filelist2[i] = testpath + filelist2[i]
+    scan2.importFile(csvfile)
 
-    scns.importFiles(filelist)
-    scns.importFiles(filelist2, append=True)
-    print(scns.scanList)
 
-    print(scns.get_dependence_parameter())
 
 #    scn2.chopEnds()
 #    print(str(len(scn2.newtime)))

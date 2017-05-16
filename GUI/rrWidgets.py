@@ -15,7 +15,7 @@ from functionlibrary import redred as rr
 import qdarkstyle
 import os
 
-run_local = False
+run_local = True
 
 
 
