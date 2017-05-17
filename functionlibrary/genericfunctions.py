@@ -133,19 +133,19 @@ def name_to_info(file):
     #errStr = FileName + ' contains no info about: '
 
     #define parameter set
-    parameterDict = {'Scan Date' : file_creation_date(file),
-                     'Material'   : '',
-                     'Pump Power' : 0,
-                     'Probe Power': 0,
-                     'Temperature': 0,
-                     'Destruction Power': 0,
-                     'Other': '',
+    parameterDict = {'date' : file_creation_date(file),
+                     'material'   : '',
+                     'pump_power' : 0,
+                     'probe_power': 0,
+                     'temperature': 0,
+                     'destruction_power': 0,
+                     'other': '',
                      }
     #set of possible indicators and corresponding key
-    parInd = {'Pump Power' : ['pu','pump'],
-              'Probe Power': ['pr','probe'],
-              'Temperature': ['t','temp'],
-              'Destruction Power': ['d','dest','destr'],
+    parInd = {'pump_power' : ['pu','pump'],
+              'probe_power': ['pr','probe'],
+              'temperature': ['t','temp'],
+              'destruction_power': ['d','dest','destr'],
               }
     # Iterate over possible indicators and save value to corresponding key in
     parameterIndicatorTrue = []
@@ -170,7 +170,7 @@ def name_to_info(file):
        if x < pos:
            pos=x
 
-    parameterDict['Material'] = FileName[0:pos]
+    parameterDict['material'] = FileName[0:pos]
 
     return(parameterDict)
 
