@@ -40,12 +40,13 @@ class Transient(object):
         ######################################
         #                Data                #
         ######################################
-        self.raw_time = []          # time data
-        self.raw_trace = []      # raw trace data
+        self.raw_time = np.array([])          # time data
+        self.raw_trace = np.array([])      # raw trace data
 
-        self.time = []          # cleaned time axis
-        self.trace = []         # cleaned and modified data trace
+        self.time = np.array([])          # cleaned time axis
+        self.trace = np.array([])         # cleaned and modified data trace
 
+        self.data_attributes = ['raw_time','raw_trace','time','trace']
         ######################################
         #              Metadata              #
         ######################################
@@ -487,17 +488,27 @@ class Transient(object):
         Data expected is 4 couloms: raw_time, raw_trace, time, trace.
 
         filepath should full path to file as string.
+        asdf
         """
         try:
             f = open(filepath, 'r')
             #get metadata from header
             parameters = self.__dict__
-
+            for i in self.
+            colnames = []
             for l in f:
                 line = l.split('\t')
                 varname = line[0].replace(' ','_').lower()
                 if varname in parameters:
                     setattr(self,varname,line[1])
+                elif 'raw_time' in line:
+                    colnames = line
+                elif 'raw_trace' in line:
+                    colnames = line
+                elif 'time' in line:
+                    colnames = line
+                elif 'trace' in line:
+                    colnames = line
             f.close()
             #get data:
             skipline = True
@@ -507,7 +518,6 @@ class Transient(object):
             while skipline: # skip metadata section then import array of data
                 try:
                     data = np.loadtxt(filepath, delimiter=',', skiprows=n)
-                    print(len(data[0]))
                     n+=1
                     skipline = False
                 except ValueError:
@@ -517,11 +527,11 @@ class Transient(object):
 
 #           Write in variable taken from column title! its more universal...
 
-                for i in range(len(data)):
-                    self.raw_time.append(data[i][0])
-                    self.raw_trace.append(data[i][1])
-                    self.time.append(data[i][2]) # ???? wtf error???
-                    self.trace.append(data[i][3])
+            for i in range(len(data)):
+                self.raw_time.append(data[i][0])
+                self.raw_trace.append(data[i][1])
+                self.time.append(data[i][2]) # ???? wtf error???
+                self.trace.append(data[i][3])
 
         except FileNotFoundError:
                     print('Couldnt find file at location : \n filepath')
