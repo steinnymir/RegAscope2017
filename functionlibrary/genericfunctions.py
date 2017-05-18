@@ -39,7 +39,7 @@ def chooseFiles():
 #%% Generic Utilities
 
 def file_creation_date(file):
-    return datetime.fromtimestamp(int(os.path.getmtime(file))).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.fromtimestamp(int(os.path.getmtime(file))).strftime('%Y-%m-%d %H.%M.%S')
 
 def save_obj(obj, name ):
     with open('obj/'+ name + '.pkl', 'wb') as f:

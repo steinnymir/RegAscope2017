@@ -26,9 +26,8 @@ def main():
     scan1 = Transient()
 
     scan1.importFile(matfile)
-    print(scan1.getMetadata())
-    print(len(scan1.time))
-    print(len(scan1.trace))
+    print('\n')
+
 #    scan1.quickplot()
     scan1.exportCSV(testpath)
 
@@ -188,28 +187,31 @@ class Transient(object):
             keys are attribute names and values the corresponding value.
         """
 
-        metadata = {}
+        metadata = {'analysis_log': {}}
         var = self.__dict__
         #ignore_list = ['time', 'trace', 'raw_time', 'raw_trace']
 
         for key in var:
             if not key in self.data_attributes:
-                try:
-                    # if parameter is a number != 0 append to metadata
-                    if float(var[key]) != 0:
-                        metadata[key] = var[key]
-                # if not a number, and not an empty string
-                except ValueError:
-                    if len(var[key]) == 0:
-                        pass
-                    else:
-                        metadata[key] = var[key]
-                # if not a number, and not an empty list
-                except TypeError:
-                    if len(var[key]) == 0:
-                        pass
-                    else:
-                        metadata[key] = var[key]
+                if 'analysis_log' in key:
+                    metadata['analysis_log'][key[13:-1:]] = var[key]
+                else:
+                    try:
+                        # if parameter is a number != 0 append to metadata
+                        if float(var[key]) != 0:
+                            metadata[key] = var[key]
+                    # if not a number, and not an empty string
+                    except ValueError:
+                        if len(var[key]) == 0:
+                            pass
+                        else:
+                            metadata[key] = var[key]
+                    # if not a number, and not an empty list
+                    except TypeError:
+                        if len(var[key]) == 0:
+                            pass
+                        else:
+                            metadata[key] = var[key]
 
         return(metadata)
 
@@ -267,7 +269,7 @@ class Transient(object):
 
     def makeSave_name(self):
         '''initialize save_name string'''
-        self.save_name = str(self.material) + str(self.date)
+        self.save_name = str(self.material) + '_' +  str(self.date)
 
 
     def writeMetadata_fromDict(self,mdDict):
@@ -300,6 +302,7 @@ class Transient(object):
             return('ps')
         elif splitpar[-1] == 'energy':
             return('mJ/cm^2')
+        else: return('')
 
 
 
@@ -348,7 +351,7 @@ class Transient(object):
             end = start
             while self.raw_time[end] > minT:
                 end += 1
-            print('From' + str(start) + 'to'+ str(end) + 'pos')
+            #print('From' + str(start) + 'to'+ str(end) + 'pos')
             i = 0
             while i in range(end-start):
                 self.time.append(self.raw_time[i+start])
@@ -361,7 +364,7 @@ class Transient(object):
             end = start
             while self.raw_time[end] < maxT:
                 end += 1
-            print('Time scale cropped from ' + str(start) + ' to '+ str(end) + ', neg')
+            #print('Time scale cropped from ' + str(start) + ' to '+ str(end) + ', neg')
             i=0
             while i in range(end-start):
                 self.time.append(self.raw_time[i+start])
@@ -561,41 +564,50 @@ class Transient(object):
         Metadata is obtained from fetchMetadata(), resulting in all non0
         parameters available.
         """
-        self.makeSave_name()
 
-        print(self.date)
-        #file = open(directory  + self.save_name + '.txt', 'w+')
-
+        #initialize metadata dictionary separating info that will be printed later
+        self.makeSave_name() # creates a name for the file
         metadata = self.getMetadata()
         logDict = metadata.pop('analysis_log', None)
-        print('\nmetadata: ')
-        print(metadata)
-        print('\nlog: ')
+        logDict.pop('', None)
+        savename = metadata.pop('save_name',None)
+        original_filepath = metadata.pop('original_filepath',None)
         print(logDict)
 
-#        parameter = ['','','']
-#
-#        for key in metadata:
-#            parameter[0] =  str(key)
-#            parameter[1] = str(metadata[key])
-#            parameter[2] = self.getUnit(key)
-#            try:
-#                file.write('\t'.join(parameter) + '\n')
-#            except TypeError:
-#                print("bad metadata:" )
-#        #data
-#        file.write('\n############### Data ###############\n\n')
-#        file.write('raw_time\t\traw_trace\t\ttime\t\ttrace\n')
-#        for i in range(len(self.raw_time)):
-#            string = str(self.raw_time[i])   + ',' + str(self.raw_trace[i])
-#            if i <= len(self.time):
-#                string.append(',' + str(self.time[i]) + ','
-#                              + str(self.trace[i]) + '\n')
-#            else:
-#                string.append('\n')
-#
-#            file.write(string)
-#        file.close()
+
+        # open file in overwrite mode
+        file = open(directory  + self.save_name + '.txt', 'w+')
+
+        file.write('RedRed Scan\n\nMetadata\n\n')
+
+        for key in metadata:
+            try:
+                line = key +': ' + str(metadata[key]) + self.getUnit(key) + '\n'
+                file.write(line)
+            except TypeError:
+                print("Type error for " + key + 'when writing to file: '
+                      + self.save_name)
+        file.write('\nAnalysis performed:\n')
+        for key in logDict:
+            line = key +': ' + str(logDict[key])  #+ '\n'
+            file.write(line)
+
+            #data
+        file.write('\n\nData\n\n')
+        file.write('raw_time, raw_trace, time, trace\n')
+
+
+        for i in range(len(self.raw_time)):
+            line = str(self.raw_time[i])   + ',' + str(self.raw_trace[i])
+            try:
+                line += ',' + str(self.time[i]) + ',' + str(self.trace[i])
+            except IndexError:
+                pass
+            finally:
+                line += '\n'
+
+            file.write(line)
+        file.close()
 
 
 
