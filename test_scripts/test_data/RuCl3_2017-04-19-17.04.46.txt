@@ -2,15 +2,15 @@ RedRed Scan
 
 Metadata
 
-material: RuCl3
-date: 2017-04-19-17.04.46
-pump_power: 1.5mW
-probe_power: 0.5mW
-temperature: 5.0
-R0: -3.4V
-other: ['1kavg']
+material: RuCl3 
+date: 2017-04-19-17.04.46 
+pump_power: 1.5 mW
+probe_power: 0.5 mW
+temperature: 5.0 K
+R0: -3.4 V
+other: ['1kavg'] 
 
-Analysis performed:
+Analysis
 Crop Time Scale: {'maxtime': 130.04256112872548, 'mintime': -1.1299556891625429}
 Flip Time: Boolean
 Remove DC: {'window': 40, 'shift': -0.0043816170176476281}

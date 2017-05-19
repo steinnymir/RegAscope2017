@@ -11,6 +11,7 @@ import scipy as sp
 import scipy.signal as spsignal
 import matplotlib.pyplot as plt
 import os
+import re
 
 def main():
 
@@ -30,6 +31,8 @@ def main():
 
 #    scan1.quickplot()
     scan1.exportCSV(testpath)
+    getfile = gfs.chooseFilename(testpath)
+    scan1.importCSV(getfile)
 
 #    scan2.importFile(csvfile)
 #    scan2.quickplot
@@ -303,6 +306,9 @@ class Transient(object):
             return('ps')
         elif splitpar[-1] == 'energy':
             return('mJ/cm^2')
+        elif splitpar[-1] == 'temperature':
+            return('K')
+
         else: return('')
 
 #%% import export
@@ -382,12 +388,12 @@ class Transient(object):
 
         for key in metadata:
             try:
-                line = key +': ' + str(metadata[key]) + self.getUnit(key) + '\n'
+                line = key +': ' + str(metadata[key]) + ' ' + self.getUnit(key) + '\n'
                 file.write(line)
             except TypeError:
                 print("Type error for " + key + 'when writing to file: '
                       + self.save_name)
-        file.write('\nAnalysis performed\n')
+        file.write('\nAnalysis\n')
         for key in logDict:
             line = key +': ' + str(logDict[key])  + '\n'
             file.write(line)
@@ -423,29 +429,32 @@ class Transient(object):
         """
 
 
-#        parameters = self.__dict__
+        parameters = self.__dict__
 #        colnames = []
 #
          #get metadata from header
 
 
-
-        with open(filepath, 'r') as f:
-            for l in f:
-                line = l.split(': ')
+        f = open(filepath, 'r')
+        n = 0
 
 
+        for l in f:
+            word = l[:-1:].split(': ')
+            #print(word)
+            if word[0] in parameters:
+                print(word)
+                key = word[0]
+                value_string = word[1]
+                if self.getUnit(key):
+                    value = float(re.findall("\d+\.\d+",value_string)[0])
+                else:
+                    value = value_string
+                setattr(self, key, value)
+                print(key + str(getattr(self,key)))
 
-             #            for l in f:
-#                line = l.replace('\n','').split('\t')
-#                varname = line[0].replace(' ','_').lower()
-#                if varname in parameters:
-#                    if varname not in self.data_attributes:
-#                        setattr(self,varname,line[1])
-#                    else:
-#                        colnames = line
-#            print(colnames)
-#
+
+
 #        #get data:
 #        skipline = True
 #        n=0
