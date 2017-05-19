@@ -4,7 +4,7 @@ Created on Mon May 15 10:18:49 2017
 
 @author: S.Y. Agustsson
 
-module containing general purpouse function
+module containing general purpouse function, usually shornamed wih gfs
 
 """
 #%% imports
@@ -25,21 +25,46 @@ def main():
 #%% File/Folder Popup dialogs
 
 def chooseFolder(initialdir = 'E://'):
+    '''dialog box for folder selection
+        info at https://tkinter.unpythonic.net/wiki/tkFileDialog
+    '''
     root = tk.Tk()
     root.withdraw()
-    dataDir = filedialog.askdirectory(initialdir = initialdir)
-    return(dataDir)
+    directory = filedialog.askdirectory(initialdir = initialdir)
+    return(directory)
 
-def chooseFile():
-    pass
+def chooseFilename(initialdir = 'E://'):
+    '''dialog box for folder selection
+        info at https://tkinter.unpythonic.net/wiki/tkFileDialog
+    '''
 
-def chooseFiles():
-    pass
+    root = tk.Tk()
+    root.withdraw()
+    filename = filedialog.askopenfilename(initialdir = initialdir)
+    return(filename)
 
+def chooseFilenames(initialdir = 'E://'):
+    '''dialog box for folder selection
+        info at https://tkinter.unpythonic.net/wiki/tkFileDialog
+    '''
+
+    root = tk.Tk()
+    root.withdraw()
+    filenames = filedialog.askopenfilenames(initialdir = initialdir)
+    return(filenames)
+
+def chooseSaveFilename(initialdir = 'E://'):
+    '''dialog box for folder selection
+        info at https://tkinter.unpythonic.net/wiki/tkFileDialog
+    '''
+    root = tk.Tk()
+    root.withdraw()
+    filename = filedialog.asksaveasfilename(initialdir = initialdir)
+    return(filename)
 #%% Generic Utilities
 
 def file_creation_date(file):
-    return datetime.fromtimestamp(int(os.path.getmtime(file))).strftime('%Y-%m-%d %H.%M.%S')
+    return datetime.fromtimestamp(int(os.path.getmtime(file))).strftime('%Y-%m-%d-%H.%M.%S')
 
 def save_obj(obj, name ):
     with open('obj/'+ name + '.pkl', 'wb') as f:
@@ -176,7 +201,8 @@ def getMetadataFromName(filepath):
                     filename_list.pop(parameter_index) # string, second the value
                 except :
                     pass
-        metadataDict['material'] = filename_list.pop(0)
+        matname = filename_list.pop(0)
+        metadataDict['material'] = FileName[0:len(matname)]
         metadataDict['other'] = filename_list
 
     else: # use 'parameter name search' based interpreter
