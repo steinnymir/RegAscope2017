@@ -12,6 +12,7 @@ import scipy.signal as spsignal
 import matplotlib.pyplot as plt
 import os
 import re
+import pandas
 
 
 def main():
@@ -25,14 +26,15 @@ def main():
     csvfile = testpath + testcsv
 
     scan1 = Transient()
-
+    scan2 = Transient()
     scan1.importFile(matfile)
     print('\n')
 
 #    scan1.quickplot()
     scan1.exportCSV(testpath)
     getfile = gfs.chooseFilename(testpath)
-    scan1.importCSV(getfile)
+    scan2.importCSV(getfile)
+    print(scan2.time[0:20])
 
 #    scan2.importFile(csvfile)
 #    scan2.quickplot
@@ -64,9 +66,8 @@ class Transient(object):
         ######################################
 
         self.material = ''      # Material name
-        self.sample = ''        # Sample code name (to identify exact sample measured)
         self.date = ''          # Scan date in format YYYY-MM-DD hh.mm.ss
-        self.original_filepath = '' #path to original raw file
+        self.original_filepath = ''  # Path to original raw file
 
         # parameters
 
@@ -74,20 +75,23 @@ class Transient(object):
         self.probe_power = 0        # Probe Power [mW]
         self.destruction_power = 0        # Destruction Power [mW]
 
-        #Spot size represents the FWHM diameter from Gaussian fit of the beam profile
+        # Spot size represents the FWHM diameter from Gaussian fit
+        # of the beam profile
         self.pump_spot = 0         # Pump beam spot size [micrometers]
         self.probe_spot = 0        # Probe beam spot size [micrometers]
-        self.destruction_spot = 0        # Destruction beam spot size, FWHM [micrometers]
-        # excitation densities calculated from power, spotsize and repetition rate
+        self.destruction_spot = 0  # Destruction beam spot size [micrometers]
+        # Excitation densities calculated from
+        # power, spotsize and repetition rate
         self.pump_energy = 0
         self.probe_energy = 0
         self.destruction_energy = 0
 
-        # Plarization are measured clockwise in propagation direction of the beam
-        self.pump_polarization = 0        # Pump beam polarization [deg], 0 = 12o'clock
-        self.probe_polarization = 0       # Probe beam polarization [degg], 0 = 12o'clock
-        self.destruction_polarization = 0       # Destruction beam polarization [degg], 0 = 12o'clock
-        self.sample_orientation = 0   # Sample orientation, 0 = 12o'clock
+        # Plarization are measured clockwise in
+        # propagation direction of the beam, 0 = 12o'clock
+        self.pump_polarization = 0         # Pump beam polarization [deg]
+        self.probe_polarization = 0        # Probe beam polarization [deg]
+        self.destruction_polarization = 0  # Destruction beam polariz. [deg]
+        self.sample_orientation = 0   # Sample orientation [deg]
         self.temperature = 0    # Temperature [K]
         self.R0 = 0             # Static reflectivity
 #        self.T0 = 0             # Static Transimittivity
@@ -96,11 +100,10 @@ class Transient(object):
         #              Analysis              #
         ######################################
 
-        self.analysis_log = {} #keeps track of analysis changes performed\
-        self.save_name = ''      # String used as file name for saving data
-#        self.parameters = {}    # Dictionary of all parameters, see initParameters()
-
-
+        self.analysis_log = {}  # Keeps track of analysis changes performed
+        self.save_name = ''     # String used as file name for saving data
+#        self.parameters = {}    # Dictionary of all parameters,
+                                 # see initParameters()
 #        self.metadataUnits = ['pump_power' :
 #                              'probe_power',
 #                              'destruction_power',
@@ -119,7 +122,7 @@ class Transient(object):
 #                              'T0'
 #                              ]
 
-#%% metadata management
+# %% metadata management
 
 #    def initMetadata_filename(self):
 #        """Initializes all metadata variables obtainable from the file name """
@@ -158,7 +161,8 @@ class Transient(object):
 #            else:
 #                print('Unidentified Key: ' + key)
 #        if noinfo:
-#            print('No information obtained from filename ' + str(self.original_filename))
+#            print('No information obtained from filename '
+#                   + str(self.original_filename))
 #        self.calcEnergyDensities()
 
     def calc_energy_densities(self, rep_rate=283000):
@@ -175,8 +179,7 @@ class Transient(object):
             if beam == 'pump':
                 rep_rate = rep_rate / 2  # pump has half reprate
                                          # (darkcontrol)
-
-            energy = gfs.getEnergyDensity(spot,power,rep_rate)
+            energy = gfs.getEnergyDensity(spot, power, rep_rate)
             setattr(self, (beam + '_energy'), energy)
 
 #        if self.pump_spot != 0:
@@ -204,13 +207,13 @@ class Transient(object):
         """ Returns a dictionary containing all metadata information available
             keys are attribute names and values the corresponding value.
         """
-        metadata = {'analysis_log': {}} # make dict for metadata
-                                        # initialize also analysis_log in there
+        metadata = {'analysis_log': {}}  # make dict for metadata with
+                                         # also analysis_log
         var = self.__dict__
         # ignore_list = ['time', 'trace', 'raw_time', 'raw_trace']
 
         for key in var:
-            if key not in self.data_attributes: # ignore time, trace etc...
+            if key not in self.data_attributes:  # ignore time, trace etc...
                 if 'analysis_log' in key:
                     metadata['analysis_log'][key[13:-1:]] = var[key]
                 else:
@@ -233,7 +236,7 @@ class Transient(object):
 
         return(metadata)
 
-    def log_it(self, key, overwrite = False, *args, **kargs):
+    def log_it(self, key, overwrite=False, *args, **kargs):
         """ generate log entry for analysis_log.
             creates a key with given key in analysis_log, making it:
                 - boolean if no other args or kargs are given, flips previous
@@ -242,6 +245,8 @@ class Transient(object):
                 - dictionary if **kargs are passed
             if overwrite is False, it appends values on previous logs,
             if True, it obviously overwrites them.
+
+            Needs better comments in script
             """
 
         key_string = 'analysis_log[' + key + ']'
@@ -260,7 +265,6 @@ class Transient(object):
         # Check if previous logs with this key and eventually overwrite/append
         # the new entry.
         try:
-            #getattr(self, keystr)
             prev = getattr(self, key_string)
             if entry == 'boolean':
                 setattr(self, key_string, not prev)
@@ -290,22 +294,6 @@ class Transient(object):
         '''initialize save_name string'''
         self.save_name = str(self.material) + '_' + str(self.date)
 
-
-#    def writeMetadata_fromDict(self,mdDict):
-#        """test method for importing metadata from dictionary"""
-#        var = self.__dict__
-#        trackvars = []
-#        for key in var:
-#            try:
-#                #mdDict[key]
-#                setattr(self,key,mdDict[key])
-#                trackvars.append(key)
-#            except KeyError:
-#                pass
-#        print('Imported the following parameters: ')
-#        print(trackvars)
-#        #print('Imported the following parameters: ' + ', '.join(trackvars))
-
     def getUnit(self, parameter):
         ''' Returns the unit of the given parameter.'''
         splitpar = parameter.split('_')
@@ -332,7 +320,7 @@ class Transient(object):
         '''Imports a file, csv or .mat
         uses self.importMatFile() and self.importCSV,
         depending on file extension'''
-        try: # if it finds the file requested...
+        try:  # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
             if ext == '.mat':
                 if os.path.basename(filepath).lower() != 't-cal.mat':
@@ -363,17 +351,16 @@ class Transient(object):
 
             self.R0 = data['DC'][0][0]
             # get all metadata from name
-            metadataDict = gfs.getMetadataFromName(filepath)
+            metadataDict = gfs.get_metadata_from_name(filepath)
             # write metadata to relative attributes
             for key in metadataDict:
                 try:
-                    setattr(self,key,metadataDict[key])
+                    setattr(self, key, metadataDict[key])
                 except KeyError:
                     print('invalid key: ' + key)
 
         except KeyError:
-            print(filepath  + ' is not a valid redred scan datafile')
-
+            print(filepath + ' is not a valid redred scan datafile')
 
     def exportCSV(self, directory):
         """
@@ -387,45 +374,46 @@ class Transient(object):
         Metadata is obtained from fetchMetadata(), resulting in all non0
         parameters available.
         """
-
-        #initialize metadata dictionary separating info that will be printed later
+        # ----------- metadata -----------
+        #initialize metadata dictionary
+        # separate log, will be printed later
         self.makeSave_name() # creates a name for the file
         metadata = self.getMetadata()
         logDict = metadata.pop('analysis_log', None)
-        logDict.pop('', None)
-        save_name = metadata.pop('save_name',None)
-        original_filepath = metadata.pop('original_filepath',None)
+        logDict.pop('', None)  # remove the useless empty entry
+        save_name = metadata.pop('save_name', None)
+        original_filepath = metadata.pop('original_filepath', None)
         print(logDict)
 
-
         # open file with name save_name (self.save_name) in overwrite mode
-        file = open(directory  + save_name + '.txt', 'w+')
+        file = open(directory + save_name + '.txt', 'w+')
         # make a title in the header
         file.write('RedRed Scan\n\nMetadata\n\n')
         # write metadata as: parameter: value unit
         for key in metadata:
             try:
-                line = key +': ' + str(metadata[key]) + ' ' + self.getUnit(key) + '\n'
+                line = (key + ': ' +
+                        str(metadata[key]) + ' ' +
+                        self.getUnit(key) + '\n')
                 file.write(line)
             except TypeError:
-                print("Type error for " + key + 'when writing to file: '
-                      + self.save_name)
+                print("Type error for " + key + 'when writing to file: ' +
+                      self.save_name)
         # write analysis log as function: values
         file.write('\nAnalysis\n')
         for key in logDict:
-            line = key +': ' + str(logDict[key])  + '\n'
+            line = key + ': ' + str(logDict[key]) + '\n'
             file.write(line)
 
-            #data
+            # ----------- Data -----------
             # Data header followed by column heads:
         file.write('\n\nData\n\n')
         file.write('raw_time, raw_trace, time, trace\n')
 
-
         for i in range(len(self.raw_time)):
-            line = str(self.raw_time[i])   + ',' + str(self.raw_trace[i])
-            try: # try appending analysied data, or skip if it is finished
-                 # this because of the deleting of initial and final data
+            line = str(self.raw_time[i]) + ',' + str(self.raw_trace[i])
+            try:  # try appending analysied data, or skip if it is finished
+                  # this because of the deleting of initial and final data
                 line += ',' + str(self.time[i]) + ',' + str(self.trace[i])
             except IndexError:
                 pass
@@ -434,7 +422,6 @@ class Transient(object):
 
             file.write(line)
         file.close()
-
 
     def importCSV(self, filepath):
         """
@@ -447,44 +434,61 @@ class Transient(object):
         filepath should full path to file as string.
 
         """
-         ######## get metadata #######
-        attributes = self.__dict__ # dictionary of attributes where to assign parameters
+        # ---------- get metadata ----------
+
+        # dictionary of attributes where to assign parameters
+        attributes = self.__dict__
         parameters = []
-        for attribute in attributes:
-            if attr not in self.data_attributes:
-                parameters.append(attr)
-        f = open(filepath, 'r')
-        for l in f:
-            word = l[:-1:].split(': ') # split each line from file into a list
-            #print(word)
-            if word[0] in parameters: # if the first word corresponds to an attribute name
-                #print(word)
-                key = word[0]
-                value_string = word[1]
-                if self.getUnit(key):
-                    # if parameter expects units, get only numbers,
-                    value = float(re.findall("\d+\.\d+",value_string)[0])
-                else: #otherwise get the whole string
-                    value = value_string
-                setattr(self, key, value) # create/assign attribute from imported parameter
-                #print(key + str(getattr(self,key)))
+        for attribute in attributes:  # use only non-data attributes
+            if attribute not in self.data_attributes:
+                parameters.append(attribute)
 
-         ######## get data #######
+        with open(filepath, 'r') as f:
+            n = 0
+            for l in f:
+                # search for the data coulomn header
+                if 'raw_time' in l:
+                    dataOffset = n
+                    columnHeaders = l.replace('\n', '').split(',')
+                else:
+                    n += 1
+                # split each line from file into a list
+                word = l[:-1:].split(': ')
+                # if the first word corresponds to an attribute name
+                if word[0] in parameters:
+                    key = word[0]
+                    value_string = word[1]
+                    if self.getUnit(key):
+                        # if parameter expects units, get only numbers,
+                        value = float(re.findall("\d+\.\d+", value_string)[0])
+                    else:  # otherwise get the whole string
+                        value = value_string
+                    # create/assign attribute from imported parameter
+                    setattr(self, key, value)
+
+        # ---------- get data ----------
+
         skipline = True
-        n=0
-        data = [] # where data will be stored
-
-
+        n = 0
+        data = []  # where data will be stored
 
         while skipline: # skip metadata section then import array of data
             try:
-                #if line contains something different from csv numbers it fails,
+                # error if line contains something different from csv numbers:
                 # skips a line and retries. Finally imports data in 'data'
-                data = np.loadtxt(filepath, delimiter=',', skiprows=n)
-                skipline = False # put at the end will be reched only if
-                                 # assigning data dint return errors.
+                data = np.loadtxt(filepath, delimiter=',', skiprows=dataOffset)
+                skipline = False  # put at the end will be reched only if
+                                  # assigning data dint return errors.
             except ValueError:
                 n+=1
+
+#        for i, item in enumerate(data):
+#            for j col in enumerate(Headers):
+#                setattr(self, col, data[i][j])
+
+        # ---------- data with pandas ----------
+
+        data = pandas.read_csv(filepath, names=colnames, skiprows=headnum)
 #
 ##           Write in variable taken from column title! its more universal...
 #
