@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import os
 import re
 
+
 def main():
 
     testmat = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat'
@@ -22,7 +23,6 @@ def main():
 
     matfile = testpath + testmat
     csvfile = testpath + testcsv
-
 
     scan1 = Transient()
 
@@ -38,7 +38,6 @@ def main():
 #    scan2.quickplot
 
 
-
 class Transient(object):
 
     def __init__(self):
@@ -47,13 +46,19 @@ class Transient(object):
         ######################################
         #                Data                #
         ######################################
+
         self.raw_time = np.array([])          # time data
         self.raw_trace = np.array([])      # raw trace data
 
         self.time = np.array([])          # cleaned time axis
         self.trace = np.array([])         # cleaned and modified data trace
 
-        self.data_attributes = ['raw_time','raw_trace','time','trace','data_attributes']
+        self.data_attributes = ['raw_time',
+                                'raw_trace',
+                                'time',
+                                'trace',
+                                'data_attributes']
+
         ######################################
         #              Metadata              #
         ######################################
@@ -156,46 +161,56 @@ class Transient(object):
 #            print('No information obtained from filename ' + str(self.original_filename))
 #        self.calcEnergyDensities()
 
-    def calcEnergyDensities(self, rep_rate = 283000):
+    def calc_energy_densities(self, rep_rate=283000):
         """ recalculate metadata depending on given parameters
         calculates:
                - energy densities
         """
 
-        if self.pump_spot != 0:
-            self.pump_energy = gfs.getEnergyDensity(self.pump_spot, self.pump_power, rep_rate/2)
-        else:
-            self.pump_power = 0
+        beams = ['pump', 'probe', 'destruction']
 
-        if self.probe_spot != 0:
-            self.probe_energy = gfs.getEnergyDensity(self.probe_spot, self.probe_power, rep_rate/2)
-        else:
-            self.pump_energy = 0
+        for beam in beams:
+            power = getattr(self, (beam + '_power'))
+            spot =  getattr(self, (beam + '_spot'))
+            if beam == 'pump':
+                rep_rate = rep_rate / 2  # pump has half reprate
+                                         # (darkcontrol)
 
-        if self.destruction_spot != 0:
-            self.destruction_energy = gfs.getEnergyDensity(self.destruction_spot, self.destruction_power, rep_rate)
-        else:
-            self.destruction_energy = 0
+            energy = gfs.getEnergyDensity(spot,power,rep_rate)
+            setattr(self, (beam + '_energy'), energy)
 
+#        if self.pump_spot != 0:
+#            self.pump_energy = gfs.getEnergyDensity(self.pump_spot, self.pump_power, rep_rate/2)
+#        else:
+#            self.pump_power = 0
+#
+#        if self.probe_spot != 0:
+#            self.probe_energy = gfs.getEnergyDensity(self.probe_spot, self.probe_power, rep_rate/2)
+#        else:
+#            self.pump_energy = 0
+#
+#        if self.destruction_spot != 0:
+#            self.destruction_energy = gfs.getEnergyDensity(self.destruction_spot, self.destruction_power, rep_rate)
+#        else:
+#            self.destruction_energy = 0
 
-    def initMetadata(self):
-        """Initializes all metadata variables obtainable from the file name,
-        when a file has the correct naming structure:
-            MaTeRiAl_pu12mW_pr5mW_de50mW_temp4K_pupol45_prpol-45_001.xxx """
-        print("method initMetadata still not made...")
-
+#    def initMetadata(self):
+#        """Initializes all metadata variables obtainable from the file name,
+#        when a file has the correct naming structure:
+#            MaTeRiAl_pu12mW_pr5mW_de50mW_temp4K_pupol45_prpol-45_001.xxx """
+#        print("method initMetadata still not made...")
 
     def getMetadata(self):
         """ Returns a dictionary containing all metadata information available
             keys are attribute names and values the corresponding value.
         """
-
-        metadata = {'analysis_log': {}}
+        metadata = {'analysis_log': {}} # make dict for metadata
+                                        # initialize also analysis_log in there
         var = self.__dict__
-        #ignore_list = ['time', 'trace', 'raw_time', 'raw_trace']
+        # ignore_list = ['time', 'trace', 'raw_time', 'raw_trace']
 
         for key in var:
-            if not key in self.data_attributes:
+            if key not in self.data_attributes: # ignore time, trace etc...
                 if 'analysis_log' in key:
                     metadata['analysis_log'][key[13:-1:]] = var[key]
                 else:
@@ -273,7 +288,7 @@ class Transient(object):
 
     def makeSave_name(self):
         '''initialize save_name string'''
-        self.save_name = str(self.material) + '_' +  str(self.date)
+        self.save_name = str(self.material) + '_' + str(self.date)
 
 
 #    def writeMetadata_fromDict(self,mdDict):
@@ -291,7 +306,7 @@ class Transient(object):
 #        print(trackvars)
 #        #print('Imported the following parameters: ' + ', '.join(trackvars))
 
-    def getUnit(self,parameter):
+    def getUnit(self, parameter):
         ''' Returns the unit of the given parameter.'''
         splitpar = parameter.split('_')
         if splitpar[-1] == 'power':
@@ -308,14 +323,16 @@ class Transient(object):
             return('mJ/cm^2')
         elif splitpar[-1] == 'temperature':
             return('K')
+        else:
+            return('')
 
-        else: return('')
+# %% import export
 
-#%% import export
-
-    def importFile(self,filepath, cleanData = True):
-        '''imports a file, csv or .mat'''
-        try:
+    def importFile(self, filepath, cleanData=True):
+        '''Imports a file, csv or .mat
+        uses self.importMatFile() and self.importCSV,
+        depending on file extension'''
+        try: # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
             if ext == '.mat':
                 if os.path.basename(filepath).lower() != 't-cal.mat':
@@ -326,13 +343,12 @@ class Transient(object):
                 self.importCSV(filepath)
             else:
                 print('Invalid format. Couldnt import file: ' + filepath)
-            #self.importMetadata()
+            # self.importMetadata()
             print(self.getMetadata)
             if cleanData:
                 self.cleanData()
         except FileNotFoundError:
             print('File ' + filepath + ' not found')
-
 
     def importMatFile(self, filepath):
         """Import data from a raw .mat file generated by redred software.
@@ -341,13 +357,14 @@ class Transient(object):
         """
         self.original_filepath = filepath
         data = sp.io.loadmat(filepath)
-        try:
+        try:  # if it finds the right data structure
             self.raw_time = data['Daten'][2]
             self.raw_trace = data['Daten'][0]
 
             self.R0 = data['DC'][0][0]
+            # get all metadata from name
             metadataDict = gfs.getMetadataFromName(filepath)
-
+            # write metadata to relative attributes
             for key in metadataDict:
                 try:
                     setattr(self,key,metadataDict[key])
@@ -383,9 +400,9 @@ class Transient(object):
 
         # open file with name save_name (self.save_name) in overwrite mode
         file = open(directory  + save_name + '.txt', 'w+')
-
+        # make a title in the header
         file.write('RedRed Scan\n\nMetadata\n\n')
-
+        # write metadata as: parameter: value unit
         for key in metadata:
             try:
                 line = key +': ' + str(metadata[key]) + ' ' + self.getUnit(key) + '\n'
@@ -393,19 +410,22 @@ class Transient(object):
             except TypeError:
                 print("Type error for " + key + 'when writing to file: '
                       + self.save_name)
+        # write analysis log as function: values
         file.write('\nAnalysis\n')
         for key in logDict:
             line = key +': ' + str(logDict[key])  + '\n'
             file.write(line)
 
             #data
+            # Data header followed by column heads:
         file.write('\n\nData\n\n')
         file.write('raw_time, raw_trace, time, trace\n')
 
 
         for i in range(len(self.raw_time)):
             line = str(self.raw_time[i])   + ',' + str(self.raw_trace[i])
-            try:
+            try: # try appending analysied data, or skip if it is finished
+                 # this because of the deleting of initial and final data
                 line += ',' + str(self.time[i]) + ',' + str(self.trace[i])
             except IndexError:
                 pass
@@ -427,47 +447,44 @@ class Transient(object):
         filepath should full path to file as string.
 
         """
-
-
-        parameters = self.__dict__
-#        colnames = []
-#
-         #get metadata from header
-
-
+         ######## get metadata #######
+        attributes = self.__dict__ # dictionary of attributes where to assign parameters
+        parameters = []
+        for attribute in attributes:
+            if attr not in self.data_attributes:
+                parameters.append(attr)
         f = open(filepath, 'r')
-        n = 0
-
-
         for l in f:
-            word = l[:-1:].split(': ')
+            word = l[:-1:].split(': ') # split each line from file into a list
             #print(word)
-            if word[0] in parameters:
-                print(word)
+            if word[0] in parameters: # if the first word corresponds to an attribute name
+                #print(word)
                 key = word[0]
                 value_string = word[1]
                 if self.getUnit(key):
+                    # if parameter expects units, get only numbers,
                     value = float(re.findall("\d+\.\d+",value_string)[0])
-                else:
+                else: #otherwise get the whole string
                     value = value_string
-                setattr(self, key, value)
-                print(key + str(getattr(self,key)))
+                setattr(self, key, value) # create/assign attribute from imported parameter
+                #print(key + str(getattr(self,key)))
+
+         ######## get data #######
+        skipline = True
+        n=0
+        data = [] # where data will be stored
 
 
 
-#        #get data:
-#        skipline = True
-#        n=0
-#        data = []
-#
-#        while skipline: # skip metadata section then import array of data
-#            try:
-#                data = np.loadtxt(filepath, delimiter=',', skiprows=n)
-#                n+=1
-#                skipline = False
-#            except ValueError:
-#                n+=1
-##                print(len(data[0]) + 'second')
+        while skipline: # skip metadata section then import array of data
+            try:
+                #if line contains something different from csv numbers it fails,
+                # skips a line and retries. Finally imports data in 'data'
+                data = np.loadtxt(filepath, delimiter=',', skiprows=n)
+                skipline = False # put at the end will be reched only if
+                                 # assigning data dint return errors.
+            except ValueError:
+                n+=1
 #
 ##           Write in variable taken from column title! its more universal...
 #
