@@ -34,6 +34,7 @@ def main():
     scan1.exportCSV(testpath)
     getfile = gfs.chooseFilename(testpath)
     scan2.importCSV(getfile)
+    print('result: ')
     print(scan2.time[0:20])
 
 #    scan2.importFile(csvfile)
@@ -448,8 +449,10 @@ class Transient(object):
             for l in f:
                 # search for the data coulomn header
                 if 'raw_time' in l:
-                    dataOffset = n
-                    columnHeaders = l.replace('\n', '').split(',')
+                    dataOffset = n + 1  # used for offset of data fetching,
+                                        # data starts from next line -> +1
+                    columnHeaders = l.replace('\n', '').replace(
+                                                        ' ','').split(',')
                 else:
                     n += 1
                 # split each line from file into a list
@@ -466,37 +469,24 @@ class Transient(object):
                     # create/assign attribute from imported parameter
                     setattr(self, key, value)
 
-        # ---------- get data ----------
+        # ---------- get data ---------- using pandas! :)
 
-        skipline = True
-        n = 0
-        data = []  # where data will be stored
+        data = pandas.read_csv(filepath,
+                               names=columnHeaders,
+                               skiprows=dataOffset)
+        for col in data.columns:
+            # make a list of float tipe data for each dataset found
+            col_data = getattr(data,col).astype(float).tolist()
+            data_list = []
+            for i in col_data:
+                if i !='nan': data_list.append(i)
 
-        while skipline: # skip metadata section then import array of data
-            try:
-                # error if line contains something different from csv numbers:
-                # skips a line and retries. Finally imports data in 'data'
-                data = np.loadtxt(filepath, delimiter=',', skiprows=dataOffset)
-                skipline = False  # put at the end will be reched only if
-                                  # assigning data dint return errors.
-            except ValueError:
-                n+=1
+            setattr(self, col, data_list)
+            print(col + ':')
+            print(getattr(self,col)[0:2])
 
-#        for i, item in enumerate(data):
-#            for j col in enumerate(Headers):
-#                setattr(self, col, data[i][j])
 
-        # ---------- data with pandas ----------
 
-        data = pandas.read_csv(filepath, names=colnames, skiprows=headnum)
-#
-##           Write in variable taken from column title! its more universal...
-#
-#        for i in range(len(data)):
-#            self.raw_time.append(data[i][0])
-#            self.raw_trace.append(data[i][1])
-#            self.time.append(data[i][2]) # ???? wtf error???
-#            self.trace.append(data[i][3])
 
 #%% Data manipulation
 
@@ -615,8 +605,8 @@ class Transient(object):
 
     def normalizeToParameter(self, parameter):
         """ Normalize scan by dividing by its pump power value"""
-        if getattr(self,parameter):
-            if getattr(self,parameter) != 0:
+        if getattr(self, parameter):
+            if getattr(self, parameter) != 0:
                 self.trace = self.trace / getattr(self,parameter)
         else: print('Normalization failed: invalid parameter name')
         logkey = 'Normalized by ' + parameter.replace('_',' ')
