@@ -483,7 +483,6 @@ class Transient(object):
 
             setattr(self, col, data_list)
             print(col + ':')
-            print(getattr(self,col)[0:2])
 
 
 
@@ -706,20 +705,20 @@ class Transients(object):
           # check if 'files' is single file (str), list of files
           # ([str,srt...]) or folder containing files.
         if isinstance(files, str):
-            self.scans.append(Transient())
-            self.scans[-1].importFile(files)
-            print('Imported file' + files)
+            self.transients.append(Transient())
+            self.transients[-1].importFile(files)
+            print('Imported file ' + files)
         elif isinstance(files, list):
             for i in range(len(files)):
-                self.scans.append(Transient())
-                self.scans[-1].importFile(files[i])
+                self.transients.append(Transient())
+                self.transients[-1].importFile(files[i])
             print('Imported files form list')
         elif os.path.isdir(files):
             folderlist = os.listdir(files)
             for i in range(len(folderlist)):
                 fullpath = files + '//' + folderlist[i]
-                self.scans.append(Transient())
-                self.scans[-1].importFile(fullpath)
+                self.transients.append(Transient())
+                self.transients[-1].importFile(fullpath)
                 print('Imported files form folder')
         self.update_scanList()
 
