@@ -102,7 +102,7 @@ class Transient(object):
         ######################################
 
         self.analysis_log = {}  # Keeps track of analysis changes performed
-        self.save_name = ''     # String used as file name for saving data
+        self.name = ''     # String used as file name for saving data
 #        self.parameters = {}    # Dictionary of all parameters,
                                  # see initParameters()
 #        self.metadataUnits = ['pump_power' :
@@ -291,9 +291,9 @@ class Transient(object):
         except AttributeError:
             setattr(self, key_string, entry)
 
-    def makeSave_name(self):
-        '''initialize save_name string'''
-        self.save_name = str(self.material) + '_' + str(self.date)
+    def make_name(self):
+        '''initialize name string'''
+        self.name = str(self.material) + '_' + str(self.date)
 
     def getUnit(self, parameter):
         ''' Returns the unit of the given parameter.'''
@@ -378,16 +378,16 @@ class Transient(object):
         # ----------- metadata -----------
         #initialize metadata dictionary
         # separate log, will be printed later
-        self.makeSave_name() # creates a name for the file
+        self.make_name() # creates a name for the file
         metadata = self.getMetadata()
         logDict = metadata.pop('analysis_log', None)
         logDict.pop('', None)  # remove the useless empty entry
-        save_name = metadata.pop('save_name', None)
+        name = metadata.pop('name', None)
         original_filepath = metadata.pop('original_filepath', None)
         print(logDict)
 
-        # open file with name save_name (self.save_name) in overwrite mode
-        file = open(directory + save_name + '.txt', 'w+')
+        # open file with name self.name in overwrite mode
+        file = open(directory + name + '.txt', 'w+')
         # make a title in the header
         file.write('RedRed Scan\n\nMetadata\n\n')
         # write metadata as: parameter: value unit
@@ -399,7 +399,7 @@ class Transient(object):
                 file.write(line)
             except TypeError:
                 print("Type error for " + key + 'when writing to file: ' +
-                      self.save_name)
+                      self.name)
         # write analysis log as function: values
         file.write('\nAnalysis\n')
         for key in logDict:
@@ -598,7 +598,10 @@ class Transient(object):
         b, a = spsignal.butter(order, cutHigh, 'low', analog= False)
         self.trace = spsignal.lfilter(b,a,self.trace)
         frequency = gfs.nyqistFreq(self.time) * cutHigh
-        self.log_it('Low Pass Filter', frequency = frequency, nyq_factor = cutHigh, order = order)
+        self.log_it('Low Pass Filter',
+                    frequency = frequency,
+                    nyq_factor = cutHigh,
+                    order = order)
         if return_frequency:
             return frequency
 
@@ -628,8 +631,169 @@ class Transient(object):
         ax.tick_params(axis='y', labelsize=fntsize)
         plt.show()
 
+# %% Multiple Transients Class
 
 
+class Transients(object):
+    ''' '''
+    def __init__(self):
+        ''' '''
+        self.transients_list = []
+        self.transients = []
+
+#%% Metadata
+    def get_dependence_parameter(self):
+        '''find the variable parameter within the series of scans
+
+        Return message when more than one parameters are changing'''
+        metadata = self.fetchMetadata()
+        depPar = []
+        for key in metadata:
+            valdic = {i:metadata[key].count(i) for i in metadata[key]}
+            print(valdic)
+            print(len(valdic))
+            if len(valdic) != 1:
+                depPar.append(key)
+        if 'date'in depPar:
+            depPar.remove('date')
+        if 'originalfilename' in depPar:
+            depPar.remove('originalfilename')
+        if len(depPar) > 1:
+            print("Warning: multiple variables change between scans")
+        else:
+            depPar = str(depPar)
+        return(depPar)
+
+
+
+    def fetchMetadata(self):
+        '''Create a Dictionary of all metadata from all single scans.
+        Each entry of the dictionary represents a parameter. Its values are a
+        list of the value corresponding to the scan.'''
+        # get metadata from first scan, to initialize dictionary
+        metadata = self.transients[0].fetchMetadata()
+
+        for key in metadata:
+            metadata[key] = [metadata[key]]
+        # construct a dictionary containing all metadata
+        skip = True  # skip first entry, since it was already written during
+                     # initialization
+        for scan in self.transients:
+            if not skip:
+                md = scan.fetchMetadata()
+                for key in metadata:
+                    metadata[key].append(md[key])
+            else:
+                skip = False
+        return(metadata)
+
+# %% Import Export
+
+    def importFiles(self, files, append=False):
+        '''imports any series of data files
+           files can be:
+               string of full path of a single scan
+               list of full paths of a single scan
+               folder from which all files will be imported
+           if append is true, it appends the imported files at end of
+           Transientslist.
+           - append : if true, appends new scans to object,
+           if false overwrites.
+        '''
+
+        if not append:
+            self.transients = [] # clear scans in memory
+          # check if 'files' is single file (str), list of files
+          # ([str,srt...]) or folder containing files.
+        if isinstance(files, str):
+            self.scans.append(Transient())
+            self.scans[-1].importFile(files)
+            print('Imported file' + files)
+        elif isinstance(files, list):
+            for i in range(len(files)):
+                self.scans.append(Transient())
+                self.scans[-1].importFile(files[i])
+            print('Imported files form list')
+        elif os.path.isdir(files):
+            folderlist = os.listdir(files)
+            for i in range(len(folderlist)):
+                fullpath = files + '//' + folderlist[i]
+                self.scans.append(Transient())
+                self.scans[-1].importFile(fullpath)
+                print('Imported files form folder')
+        self.update_scanList()
+
+    def update_scanList(self):
+        ''' update the list of names of the single scans in self.scans.
+        Name is taken from 'name' attribute of Transient() class.
+        '''
+        self.transients_list = []
+        for i in range(len(self.transients)):
+            self.transients_list.append(self.transients[i].name)
+
+# %% data analysis
+
+    def filterit(self, cutHigh = 0.1, order = 2):
+        for item in self.transients:
+            item=item.filterit(cutHigh, order)
+
+    def removeDC(self):
+        for item in self.transients:
+            item=item.removeDC()
+
+    def fliptime(self):
+        for item in self.transients:
+            item=item.flipTime()
+
+    def fliptrace(self):
+        for item in self.transients:
+            item=item.flipTrace
+
+    def shiftTime(self, tshift):
+        for item in self.transients:
+            item=item.shiftTime(tshift)
+
+    def initParameters(self):
+        for item in self.transients:
+            item=item.initParameters()
+
+#%% plot functions
+
+    def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel= 'Time, ps', Zlabel='Kerr rotation (mrad)', colormap='viridis'):
+        '''plot 3d graf with time on X trace on Z and selected parametr on Y '''
+        #create 3 lists of X Y Z data
+        time=[]
+        trace=[]
+        ypar=[]
+        #for every scan object takes values
+        for item in self.transients:
+            time.append(item.time)
+            trace.append(item.trace)
+            #on Y axis will be chosen parameter which exist in scan object
+            ypar.append(item.parameters[Yparameter][0])
+        #Make proper arrays from lists with data
+        Ypar=[]
+
+        for item in range(len(self.transients[0].time)):
+
+            Ypar.append(ypar)
+
+        X=np.array(time)
+        Y=np.transpose(np.array(Ypar))
+        Z=np.array(trace)
+
+        fig = plt.figure(num=2)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=100, cmap=colormap)
+        ax.set_xlabel(Xlabel, fontsize=20, labelpad=20)
+        ax.tick_params(axis='x', labelsize=20)
+        ax.tick_params(axis='y', labelsize=20)
+        ax.tick_params(axis='z', labelsize=20)
+
+        ax.set_ylabel(Yparameter, fontsize=20, labelpad=20)
+        ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
+        ax.set_title(title, fontsize=40)
+        plt.show()
 
 
 
