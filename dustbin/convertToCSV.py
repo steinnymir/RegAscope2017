@@ -30,7 +30,7 @@ scan.filterit(cutHigh = 0.01)
 scan.flipTime()
 scan.shiftTime(-50)
 scan.removeDC()
-#scan.flipTrace()
+#scan.flip_trace()
 
 
 Title = os.path.basename(baseDir)

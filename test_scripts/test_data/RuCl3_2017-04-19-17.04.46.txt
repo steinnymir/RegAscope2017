@@ -12,7 +12,7 @@ other: ['1kavg']
 
 Analysis
 Crop Time Scale: {'maxtime': 130.04256112872548, 'mintime': -1.1299556891625429}
-Flip Time: Boolean
+Flip Time: True
 Remove DC: {'window': 40, 'shift': -0.0043816170176476281}
 Low Pass Filter: {'frequency': 317.79496888627307, 'nyq_factor': 0.1, 'order': 2}
 

@@ -74,8 +74,8 @@ for i in range(len(scanlist)):
 #    scn[i] .filterit(cutHigh=0.05)
 #    scn[i] .flipTime()
 
-    scn[i].shiftTime(-28)
-#    scn[i] .removeDC()
+    scn[i].shift_time(-28)
+#    scn[i] .remove_DC_offset()
 
 #
 scn = sorted(scn, key=lambda scn: scn.pumpPw)

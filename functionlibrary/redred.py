@@ -88,7 +88,7 @@ class rrScan(object):
 
     Any transformation is applied both on trace and rawtrace, except for filtering.
 
-    To retrieve metadata info use xxx.fetchMetadata(), which gives a dictionary
+    To retrieve metadata info use xxx.get_metadata(), which gives a dictionary
     containing all available metadata. Same function used to create headers of
     save files (CSV).
 
@@ -309,7 +309,7 @@ class rrScan(object):
     def removeDC(self):
         """Remove DC offset defined by the average of the last(which are the first) 40 points on the scan"""
         self.trace = self.trace - np.average(self.trace[7460:7500:1])
-        self.analysisHistory.append('removeDC')
+        self.analysisHistory.append('remove_DC_offset')
 
     def filterit(self, cutHigh = 0.1, order = 2):
         """ apply simple low pass filter to data"""
@@ -427,7 +427,7 @@ class rrScan(object):
         """
 
 
-        print('WARNING: importCSV() needs some improvement...')
+        print('WARNING: import_file_csv() needs some improvement...')
 
         try:
             f = open(file, 'r')
@@ -472,7 +472,7 @@ class rrScan(object):
         """
         save rrScan() to a file. it overwrites anything it finds
 
-        Metadata is obtained from fetchMetadata(), resulting in all non0
+        Metadata is obtained from get_metadata(), resulting in all non0
         parameters available.
             """
 
@@ -511,7 +511,7 @@ class rrScan(object):
         Metadata Header is in tab separated values, generated as
         name /t value /t unit
 
-        Metadata is obtained from fetchMetadata(), resulting in all non0
+        Metadata is obtained from get_metadata(), resulting in all non0
         parameters available.
         """
         file = open(directory + '//' + self.filename + '.txt', 'w+')
@@ -606,19 +606,19 @@ class rrScans(object):
 
         if isinstance(files, str):
             self.scans.append(rrScan())
-            self.scans[-1].importFile(files)
+            self.scans[-1].import_single_file(files)
             print('Imported file' + files)
         elif isinstance(files, list):
             for i in range(len(files)):
                 self.scans.append(rrScan())
-                self.scans[-1].importFile(files[i])
+                self.scans[-1].import_single_file(files[i])
             print('Imported files form list')
         elif os.path.isdir(files):
             folderlist = os.listdir(files)
             for i in range(len(folderlist)):
                 fullpath = files + '//' + folderlist[i]
                 self.scans.append(rrScan())
-                self.scans[-1].importFile(fullpath)
+                self.scans[-1].import_single_file(fullpath)
                 print('Imported files form folder')
         self.update_scanList()
 
@@ -687,7 +687,7 @@ class rrScans(object):
 
     def removeDC(self):
         for item in self.scans:
-            item=item.removeDC()
+            item=item.remove_DC_offset()
 
     def fliptime(self):
         for item in self.scans:
@@ -695,11 +695,11 @@ class rrScans(object):
 
     def fliptrace(self):
         for item in self.scans:
-            item=item.flipTrace
+            item=item.flip_trace
 
     def shiftTime(self, tshift):
         for item in self.scans:
-            item=item.shiftTime(tshift)
+            item=item.shift_time(tshift)
 
     def initParameters(self):
         for item in self.scans:
