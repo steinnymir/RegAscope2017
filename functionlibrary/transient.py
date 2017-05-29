@@ -28,9 +28,14 @@ def main():
     scanMat = Transient()
     scanCSV = Transient()
     scanMat.import_file(matfile)
-    print('imported mat file\n')
 
-    #    scan1.quickplot()
+    print('imported mat file\n')
+    # fig = plt.figure(num=1351)
+    # axis = fig.add_subplot(111)
+    # axis.plot(scanMat.time, 'o')
+    # print(scanMat.time[0:20])
+    # print(scanMat.time[-20:-1])
+    scanMat.quickplot(raw=False)
     scanMat.export_file_csv(testpath)
     #getfile = gfs.chooseFilename(testpath)
     scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
@@ -43,8 +48,24 @@ def main():
 
 
 class Transient(object):
+    """ Creates an object(OBJ) that contains data and metadata of a single time resolved scan. The standard scan is that
+    obtained from a single color pump probe setup, aka 'RedRed'.
+    Data can be imported through use of OBJ.import_file(filepath), which imports either the raw .mat format outputted by RegaScope2012,
+    or the .txt format outputted by this class (called csv here due to the csv format of contained data). To output such
+    .txt use OBJ.export_csv(directory).
+
+    Data is contained in:
+    - raw_time: raw measured time scale
+    - raw_trace: measured data points
+    - time: time trace modified by analysis functions applied on this object
+    - trace: data modified by analysis functions applied on this object.
+
+    Metadata entries are described in __init__
+
+
+    """
     def __init__(self):
-        """ Initialize class by defining attributes """
+        """ """
 
         ######################################
         #                Data                #
@@ -77,13 +98,16 @@ class Transient(object):
         self.pump_spot = 0  # Pump beam spot size [micrometers]
         self.probe_spot = 0  # Probe beam spot size [micrometers]
         self.destruction_spot = 0  # Destruction beam spot size [micrometers]
+
         # Excitation densities calculated from power, spot size and repetition rate
         self.pump_energy = 0
         self.probe_energy = 0
         self.destruction_energy = 0
 
-        # Polarization are measured clockwise in
-        # propagation direction of the beam, 0 = 12o'clock
+        # destruction pulse parameters:
+        self.destruction_delay = 0  # delay between pump and destruction pulses, [ps]
+
+        # Polarization are measured clockwise in propagation direction of the beam, 0 = 12o'clock
         self.pump_polarization = 0  # Pump beam polarization [deg]
         self.probe_polarization = 0  # Probe beam polarization [deg]
         self.destruction_polarization = 0  # Destruction beam polariz. [deg]
@@ -287,7 +311,7 @@ class Transient(object):
 
             self.R0 = data['DC'][0][0]
             # get all metadata from name
-            metadataDict = gfs.get_metadata_from_name(filepath)
+            metadataDict = gfs.get_metadata_from_name(filepath) # todo: add eventual non scripted parameters
             # write metadata to relative attributes
             for key in metadataDict:
                 try:
@@ -499,13 +523,13 @@ class Transient(object):
         self.trace = self.trace - shift
         self.log_it('Remove DC', window=window, shift=shift)
 
-    def filter_low_pass(self, cutHigh=0.1, order=2, return_frequency=False):
+    def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):
         """ apply simple low pass filter to data
         if return_frequency is True, returns the filter frequency value
         in THz ( if time data is in ps)"""
 
         b, a = spsignal.butter(order, cutHigh, 'low', analog=False)
-        self.trace = spsignal.lfilter(b, a, self.trace)
+        self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')k
         frequency = gfs.nyqistFreq(self.time) * cutHigh
         self.log_it('Low Pass Filter',
                     frequency=frequency,
@@ -524,12 +548,16 @@ class Transient(object):
         logkey = 'Normalized by ' + parameter.replace('_', ' ')
         self.log_it(logkey)
 
-    def quickplot(self, xlabel='Time [ps]', ylabel='Trace', fntsize=15, title='Transient', clear=False):
+    def quickplot(self, xlabel='Time [ps]', ylabel='Trace', fntsize=15, title='Transient', clear=False, raw=False):
         """Generates a quick simple plot with matplotlib """
         if clear: plt.clf()
         quickplotfig = plt.figure(num=1)
         ax = quickplotfig.add_subplot(111)
-        ax.plot(self.time, self.trace, )
+        if raw:
+            ax.plot(self.raw_time, self.raw_trace, 'o')
+
+        else:
+            ax.plot(self.time, self.trace, )
         ax.set_xlabel(xlabel, fontsize=fntsize)
         ax.set_ylabel(ylabel, fontsize=fntsize)
         ax.set_title(title, fontsize=fntsize)

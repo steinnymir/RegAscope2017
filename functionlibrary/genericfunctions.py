@@ -154,6 +154,10 @@ def get_metadata_from_name(filepath):
     Example: RuCl3_pu_15mW_pr_5mW_t_4.5K.mat
              RuCl3-pu-15mW-pr-5mW-t-4.5K.mat
 
+
+    ATTENTION: conflicts possible when using t12 as name for destruction delay, with temperature (labeled as t).
+
+
     replacement of old name_to_info'''
 
     # transform to more usable string form
@@ -182,13 +186,14 @@ def get_metadata_from_name(filepath):
                       'probe_polarization': ['prpol'],
                       'destruction_polarization': ['dpol'],
                       'sample_orientation': ['sor'],
+                      'destruction_delay': ['dd', 't12']
                       }
 #    metadata_names_inv =  [(value, key) for key, value
 #                            in metadata_names.items()]
 #    print(metadata_names_inv)
     parameter_list = []
 
-    if sepCount[sep] > 1:  # use separator based interpreter
+    if sepCount[sep] > 1:  # if there are some separators, use separator based interpreter
         filename_list = filename.split(sep)
         for key, item in metadata_names.items():
             for parameter in item:
@@ -218,7 +223,6 @@ def get_metadata_from_name(filepath):
         parameter_list = []
         for key, item in metadata_names.items():
             for parameter in item:
-
                 if parameter in filename:
                     parameter_list.append(parameter)
                     try:
