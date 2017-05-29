@@ -243,7 +243,7 @@ def get_metadata_from_name(filepath):
                 pos = x
 
         metadataDict['material'] = FileName[0:pos]
-    print(filename)
+    #print(filename)
 
     return (metadataDict)
 

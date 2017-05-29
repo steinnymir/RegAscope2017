@@ -294,8 +294,7 @@ class Transient(object):
             else:
                 print("Invalid format. Couldn't import file: " + filepath)
             # self.importMetadata()
-            print(self.get_metadata)
-            if cleanData:
+            if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
         except FileNotFoundError:
             print('File ' + filepath + ' not found')
@@ -443,14 +442,14 @@ class Transient(object):
             self.crop_time_scale()
         if shiftTime:
             self.shift_time(shiftTime)
-        if flipTime:
-            self.flip_time()
-        if removeDC:
-            self.remove_DC_offset()
         if filterLowPass:
             self.filter_low_pass()
         if flipTrace:
             self.flip_trace()
+        if removeDC:
+            self.remove_DC_offset()
+        if flipTime:
+            self.flip_time()
 
     def crop_time_scale(self):  # todo: fix the overwriting issue
         """chops time scale to the monotonous central behaviour, deleting the wierd ends.
@@ -510,7 +509,7 @@ class Transient(object):
         self.trace = -self.trace
         self.log_it('Flip Trace')
 
-    def remove_DC_offset(self, window=40):  # change range in case of flipped scan!!!
+    def remove_DC_offset(self, window=40):  # todo: change range in case of flipped scan!!!
         """Remove DC offset.
         offset is caluclated with 40 points (~700fs) taken at negative time delays.
         such delay is at the end of the scan in raw data, or at the beginning
