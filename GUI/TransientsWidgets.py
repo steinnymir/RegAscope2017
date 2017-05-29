@@ -15,8 +15,6 @@ from functionlibrary import transient as tr
 import qdarkstyle
 import os
 
-run_local = True
-
 
 class MainWindow(QW.QMainWindow):
     """ Main application window """
@@ -419,7 +417,7 @@ class TransientAnalysisWidget(QW.QWidget):
         self.plotScanData()
 
     def saveasCSV(self):
-        '''save object rrScan() to csv'''
+        """save object rrScan() to csv"""
         savedir = rr.getFolder()
         print(savedir)
         self.scanData.export_file_csv(savedir)
@@ -446,19 +444,16 @@ class TransientAnalysisWidget(QW.QWidget):
 
 if __name__ == '__main__':
 
-    if run_local:
-        # run local script
-        app = QC.QCoreApplication.instance()
-        if app is None:
-            app = QG.QApplication(sys.argv)
 
-        prg = MainWindow()
-        prg.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        pg.setConfigOption('background', 0.1)
-        pg.setConfigOption('foreground', 0.7)
-        prg.show()
+
+    app = QC.QCoreApplication.instance()
+    if app is None:
+        app = QG.QApplication(sys.argv)
+
+    prg = MainWindow()
+    prg.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    pg.setConfigOption('background', 0.1)
+    pg.setConfigOption('foreground', 0.7)
+    prg.show()
         app.exec_()
 
-    else:
-        # run master file script
-        exec(open("../TransientsAnalysis.py").read())

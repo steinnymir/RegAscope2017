@@ -16,8 +16,10 @@ import qdarkstyle
 import os
 from GUI import rrWidgets
 
-class MainWindow(qw.QMainWindow):
-    """ Main application window """
+class MainWindow(qw.QMainWindow):  # TODO delete file
+    """ Main application window
+
+    """
 
     def __init__(self):
         super().__init__()

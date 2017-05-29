@@ -34,7 +34,7 @@ class CamView(qw.QWidget):
         font.setBold(True)
         font.setPixelSize(15)
 
-        self.videoScreen = pg.
+        #self.videoScreen = pg.  # todo: gui based webcam viewer
 
 def plot_image():
     cam = cv2.VideoCapture(0)

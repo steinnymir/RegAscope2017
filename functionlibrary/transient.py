@@ -41,7 +41,7 @@ def main():
     scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
     print('result: ')
     print(scanCSV.time[0:20])
-
+    scanCSV.quickplot()
 
 #    scan2.import_single_file(csvfile)
 #    scan2.quickplot
@@ -524,12 +524,18 @@ class Transient(object):
         self.log_it('Remove DC', window=window, shift=shift)
 
     def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):
-        """ apply simple low pass filter to data
-        if return_frequency is True, returns the filter frequency value
-        in THz ( if time data is in ps)"""
+        """ apply simple low pass filter to data. if return_frequency is True, returns the filter frequency value
+        in THz ( if time data is in ps)
+
+        This function applies a linear filter twice, once forward and once backwards.
+        The combined filter has linear phase.
+        To avoid spikes at edges of the scan, Gustaffson's method is used:
+         F. Gustaffson, “Determining the initial states in forward-backward filtering”,
+         Transactions on Signal Processing, Vol. 46, pp. 988-992, 1996.
+         """
 
         b, a = spsignal.butter(order, cutHigh, 'low', analog=False)
-        self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')k
+        self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')
         frequency = gfs.nyqistFreq(self.time) * cutHigh
         self.log_it('Low Pass Filter',
                     frequency=frequency,
