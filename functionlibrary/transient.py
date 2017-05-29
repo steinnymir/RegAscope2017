@@ -37,11 +37,12 @@ def main():
     # print(scanMat.time[-20:-1])
     scanMat.quickplot(raw=False)
     scanMat.export_file_csv(testpath)
-    #getfile = gfs.chooseFilename(testpath)
+    # getfile = gfs.choose_filename(testpath)
     scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
     print('result: ')
     print(scanCSV.time[0:20])
     scanCSV.quickplot()
+
 
 #    scan2.import_single_file(csvfile)
 #    scan2.quickplot
@@ -64,6 +65,7 @@ class Transient(object):
 
 
     """
+
     def __init__(self):
         """ """
 
@@ -138,7 +140,7 @@ class Transient(object):
             if beam == 'pump':
                 rep_rate = rep_rate / 2  # pump has half reprate
                 # (darkcontrol)
-            energy = gfs.getEnergyDensity(spot, power, rep_rate)
+            energy = gfs.get_energy_density(spot, power, rep_rate)
             setattr(self, (beam + '_energy'), energy)
 
     def init_metadata(self):  # todo: Write this method
@@ -311,7 +313,7 @@ class Transient(object):
 
             self.R0 = data['DC'][0][0]
             # get all metadata from name
-            metadataDict = gfs.get_metadata_from_name(filepath) # todo: add eventual non scripted parameters
+            metadataDict = gfs.get_metadata_from_name(filepath)  # todo: add eventual non scripted parameters
             # write metadata to relative attributes
             for key in metadataDict:
                 try:
@@ -536,7 +538,7 @@ class Transient(object):
 
         b, a = spsignal.butter(order, cutHigh, 'low', analog=False)
         self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')
-        frequency = gfs.nyqistFreq(self.time) * cutHigh
+        frequency = gfs.get_nyquist_frequency(self.time) * cutHigh
         self.log_it('Low Pass Filter',
                     frequency=frequency,
                     nyq_factor=cutHigh,
@@ -725,6 +727,7 @@ class TransientsSet(object):
 
 class TransientFit(object):
     """ class for making fits to transient data"""
+
     def __init__(self):
         """ initialize"""
         pass
@@ -732,6 +735,7 @@ class TransientFit(object):
     def make_fit_function(self):
         """ create the fitting function to use.
         """
+
 
 if __name__ == "__main__":
     main()

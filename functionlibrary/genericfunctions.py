@@ -18,23 +18,22 @@ import scipy.constants as spconst
 
 
 def main():
-
     pass
 
 
 # %% File/Folder Popup dialogs
 
-def chooseFolder(initialdir='E://'):
+def choose_folder(initialdir='E://'):
     '''dialog box for folder selection
         info at https://tkinter.unpythonic.net/wiki/tkFileDialog
     '''
     root = tk.Tk()
     root.withdraw()
     directory = filedialog.askdirectory(initialdir=initialdir)
-    return(directory)
+    return (directory)
 
 
-def chooseFilename(initialdir='E://'):
+def choose_filename(initialdir='E://'):
     '''dialog box for folder selection
         info at https://tkinter.unpythonic.net/wiki/tkFileDialog
     '''
@@ -42,33 +41,35 @@ def chooseFilename(initialdir='E://'):
     root = tk.Tk()
     root.withdraw()
     filename = filedialog.askopenfilename(initialdir=initialdir)
-    return(filename)
+    return (filename)
 
 
-def chooseFilenames(initialdir='E://'):
+def choose_filenames(initialdir='E://'):
     '''dialog box for folder selection
         info at https://tkinter.unpythonic.net/wiki/tkFileDialog
     '''
     root = tk.Tk()
     root.withdraw()
     filenames = filedialog.askopenfilenames(initialdir=initialdir)
-    return(filenames)
+    return (filenames)
 
 
-def chooseSaveFilename(initialdir='E://'):
+def choose_save_filename(initialdir='E://'):
     '''dialog box for folder selection
         info at https://tkinter.unpythonic.net/wiki/tkFileDialog
     '''
     root = tk.Tk()
     root.withdraw()
     filename = filedialog.asksaveasfilename(initialdir=initialdir)
-    return(filename)
+    return (filename)
+
+
 # %% Generic Utilities
 
 
 def file_creation_date(file):
     return datetime.fromtimestamp(
-            int(os.path.getmtime(file))).strftime('%Y-%m-%d-%H.%M.%S')
+        int(os.path.getmtime(file))).strftime('%Y-%m-%d-%H.%M.%S')
 
 
 def save_obj(obj, name):
@@ -134,14 +135,15 @@ def sym(letter):
     inv_map = {v: k for k, v in greek_alphabet.items()}
     for key in inv_map:
         if letter == key:
-            return(inv_map[key])
+            return (inv_map[key])
 
 
 # %% naming
 
 
-class NameString(object):
+class class_attributes_string(object):
     """ gets names of variables from whithin a class"""
+
     def __init__(self, *values):
         for v in values:
             self.__dict__[v] = v
@@ -188,9 +190,9 @@ def get_metadata_from_name(filepath):
                       'sample_orientation': ['sor'],
                       'destruction_delay': ['dd', 't12']
                       }
-#    metadata_names_inv =  [(value, key) for key, value
-#                            in metadata_names.items()]
-#    print(metadata_names_inv)
+    #    metadata_names_inv =  [(value, key) for key, value
+    #                            in metadata_names.items()]
+    #    print(metadata_names_inv)
     parameter_list = []
 
     if sepCount[sep] > 1:  # if there are some separators, use separator based interpreter
@@ -230,7 +232,7 @@ def get_metadata_from_name(filepath):
                         # pick the first following float number
                         parameter_list.append(parameter)
                         value = float(re.findall(r"\d+\.\d*",
-                                         filename.partition(parameter)[2])[0])
+                                                 filename.partition(parameter)[2])[0])
                         metadataDict[key] = value
                     except IndexError:
                         pass
@@ -243,24 +245,26 @@ def get_metadata_from_name(filepath):
         metadataDict['material'] = FileName[0:pos]
     print(filename)
 
-    return(metadataDict)
+    return (metadataDict)
+
 
 # %% Transformations
 
 
-def getEnergyDensity(spot_size=100, power=1, rep_rate=283000):
+def get_energy_density(spot_size=100, power=1, rep_rate=283000):
     """ Return energy density in microJoule /cm2
         spotsize as FWHM diameter of gaussian profile in micrometers
         power in mW
         reprate in Hz
     """
-    area = ((spot_size / 2)**2 * spconst.pi) / 10**8
+    area = ((spot_size / 2) ** 2 * spconst.pi) / 10 ** 8
     print(power / (rep_rate * area))
 
 
-def nyqistFreq(timedata):
+def get_nyquist_frequency(timedata):
     """returns the Nyquist frequency from time data"""
-    return(abs(0.5 * len(timedata) / timedata[-1] - timedata[0]))
+    return (abs(0.5 * len(timedata) / timedata[-1] - timedata[0]))
+
 
 if __name__ == "__main__":
     main()
