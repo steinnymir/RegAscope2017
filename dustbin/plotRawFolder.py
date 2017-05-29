@@ -73,8 +73,8 @@ for i in range(len(scanlist)):
     scn[i] .importRawFile(dataDir + '//' + file)
     scn[i] .filterit(cutHigh=0.05)
     scn[i] .flipTime()
-    scn[i] .shiftTime(-125)
-    scn[i] .removeDC()
+    scn[i] .shift_time(-125)
+    scn[i] .remove_DC_offset()
 
 
 #
@@ -153,6 +153,6 @@ if not os.path.exists(saveDir):
     os.makedirs(saveDir)
     
 for i in range(len(scn)):
-    scn[i].exportCSV(saveDir)
+    scn[i].export_file_csv(saveDir)
 fig.savefig(savename +'.png', format='png')
 

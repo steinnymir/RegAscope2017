@@ -15,7 +15,7 @@ from functionlibrary import redred as rr
 import qdarkstyle
 import os
 
-run_local = False
+run_local = True
 
 
 
@@ -140,7 +140,7 @@ class rrScanImport(qw.QWidget):
         self.filterLowPassFreq.valueChanged.connect(self.applyFilter)
         layout.addWidget(self.filterLowPassFreq, 16, 18, 1, 3)
 #        self.applyFilterBtn = QPushButton('Apply', self)
-#        self.applyFilterBtn.clicked.connect(self.applyFilter)
+#        self.applyFilterBtn.clicked.connect(self.filter_data_lowpass)
 #        layout.addWidget(self.applyFilterBtn, 18, 17, 1, 5)
 
 #%% slots
@@ -188,7 +188,7 @@ class rrScanImport(qw.QWidget):
 
     @qc.pyqtSlot()
     def shiftTimeZero(self):
-        '''shift time of scan by timeZero, value given in the QLineEdit shiftTimeZero'''
+        '''shift time of scan by timeZero, value given in the QLineEdit shift_time_scale'''
         txt = self.shiftTimeZero_input.text()
         num = float(txt)
 
