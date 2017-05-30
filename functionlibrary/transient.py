@@ -78,8 +78,10 @@ class Transient(object):
 
         self.time = np.array([])  # cleaned time axis
         self.trace = np.array([])  # cleaned and modified data trace
+        self.description = ''
+        self.key_parameter = ''
         # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
-        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES')
+        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES', 'description')
 
         ######################################
         #              Metadata              #
@@ -127,21 +129,23 @@ class Transient(object):
     # %% metadata management
 
     def calc_energy_densities(self, rep_rate=283000):
-        """ recalculate metadata depending on given parameters
-        calculates:
-               - energy densities
+        """ recalculate metadata depending on given parameters.
+            it calculates energy densities
         """
-
         beams = ['pump', 'probe', 'destruction']
 
         for beam in beams:
-            power = getattr(self, (beam + '_power'))
-            spot = getattr(self, (beam + '_spot'))
-            if beam == 'pump':
-                rep_rate = rep_rate / 2  # pump has half reprate
-                # (darkcontrol)
-            energy = gfs.get_energy_density(spot, power, rep_rate)
-            setattr(self, (beam + '_energy'), energy)
+            if getattr(self, (beam + '_spot')) == 0:
+
+                pass
+            else:
+                power = getattr(self, (beam + '_power'))
+                spot = getattr(self, (beam + '_spot'))
+                if beam == 'pump':
+                    rep_rate = rep_rate / 2  # pump has half reprate (darkcontrol)
+                energy = gfs.get_energy_density(spot, power, rep_rate)
+                print(energy)
+                setattr(self, (beam + '_energy'), energy)
 
     def init_metadata(self):  # todo: Write this method
         """
@@ -242,9 +246,19 @@ class Transient(object):
             else:  # otherwise just append the list/dictionary.
                 setattr(self, key_string, entry)
 
-    def make_name(self):
+    def give_name(self):
         """Define name attribute as material_date."""
-        self.name = str(self.material) + '_' + str(self.date)
+
+        if self.key_parameter is None:
+            self.key_parameter = input('What is the Key parameter for basename?  ')
+        if self.description is None:
+            self.description = input('Add brief description for file name:  ')
+
+
+        self.name = (str(self.material) + '_' +
+                     str(self.description) + '_' +
+                     str(getattr(self, self.key_parameter)) + '_' +
+                     str(self.get_unit(self.key_parameter)))
 
     def get_unit(self, parameter):
         """ Returns the unit of the given parameter.
@@ -278,24 +292,29 @@ class Transient(object):
 
     # %% import export
 
-    def import_file(self, filepath, cleanData=True):
+    def import_file(self, filepath, cleanData=True):  # todo: add description import
         """Imports a file, csv or .mat
         uses self.import_file_mat() and self.import_file_csv,
         depending on file extension"""
         try:  # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
+            basename = os.path.basename(filepath)
             if ext == '.mat':
-                if os.path.basename(filepath).lower() != 't-cal.mat':
+                if basename.lower() != 't-cal.mat':
                     self.import_file_mat(filepath)
                 else:
                     print('Ignored t-cal.mat')
+
             elif ext == '.txt':
                 self.import_file_csv(filepath)
             else:
                 print("Invalid format. Couldn't import file: " + filepath)
             # self.importMetadata()
+            self.give_name()
+            print('Imported {0} as {1}'.format(basename, self.name))
             if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
+
         except FileNotFoundError:
             print('File ' + filepath + ' not found')
 
@@ -388,7 +407,7 @@ class Transient(object):
         """
         # ----------- metadata -----------
 
-        self.make_name()  # creates a name for the file
+        self.give_name()  # creates a name for the file
         metadata = self.get_metadata()
         logDict = metadata.pop('analysis_log', None)  # separate log, will be printed later
         logDict.pop('', None)  # remove the useless empty entry

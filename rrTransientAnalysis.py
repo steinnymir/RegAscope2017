@@ -21,49 +21,56 @@ from matplotlib import cm
 def main():
     # select files from folder:
     dir = 'C:/Users/sagustss/py_code/DATA/_RAW/RuCl3/2017-04-19/'
+    dir_s = 'C:/Users/sagustss/py_code/DATA/'
     file_list = gfs.choose_filenames(initialdir=dir)
 
-    Title = 'Low Fluence Temperature Dependence'
+    title = 'Low Fluence'
     dependence = 'temperature'
+    pump_spot = 97
+    probe_spot = 64
 
-    # generate_threeplot_window(Title=Title, dependence=dependence)
-    transient_list = get_data_from_files(file_list)
-    for item in transient_list:
+
+    transient_list = get_data_from_files(file_list)  # import data
+    for item in transient_list:  # iterate and correct scans
+        item.description = title
+        item.key_dependence = dependence
+        item.pump_spot = pump_spot
+        item.probe_spot = probe_spot
+        item.calc_energy_densities()
+        item.give_name()  # todo: make the naming procedure simpler and more 'working'
+
         item.clean_data(flipTime=True, shiftTime=124.5, filterLowPass=0.005)
+    print_series_parameters(transient_list)
+
+
+
+
+
+
     transient_list = sort_scan_list_by_parameter(transient_list, dependence)
-    fig = plt.figure(num=1)
-    plt.clf()
-    ax = fig.add_subplot(111)
 
-    ax.set_xlabel('Time [ps]', fontsize=18)
-    ax.set_ylabel('Differential Reflectivity', fontsize=18)
-    ax.set_title('Fitted Scans', fontsize=26)
-    ax.tick_params(axis='x', labelsize=12)
-    ax.tick_params(axis='y', labelsize=12)
-
-    colorlist = cm.rainbow(np.linspace(0, 1, len(transient_list)))
-    color = iter(colorlist)
-
-    for curve in transient_list:
-        # l = str(scn[i].temperature) + 'K'
-        xdata = curve.time
-        ydata = curve.trace
-        col = next(color)
-        ax.plot(xdata, ydata, c=col, label=str(curve.temperature) + 'K', alpha=0.5)
-
+    quickplot_list(transient_list, title, dependence)
     plt.show()
 
+    save_dir = gfs.choose_folder(initialdir=dir)
+    save_dir += '/' + title + ' - ' + dependence + 'dependence'
 
+    for item in transient_list:
+        item.export_file_csv(save_dir)
 
+def print_series_parameters(transient_list):
+    print('\t\t\t\t Pump\tProbe\n----------------------------')
+    print('energy density:\t {0:3f}\t{1:3f}'.format(transient_list[0].pump_energy, transient_list[0].probe_energy))
+    print('power:\t\t\t {0}\t{1}'.format(transient_list[0].pump_power, transient_list[0].probe_power))
 
 
 # define fitting function
 def func(x, A, t0, c, d):
-
     return A * np.exp(- x / t0) + c * x + d
 
 
-def plot_list(transient_list, title, dependence):
+def quickplot_list(transient_list, title, dependence):
+    """ simple plot of a list of transients """  # todo: move to transients.py -> under multitransients()
     fig = plt.figure(num=1)
     plt.clf()
     ax = fig.add_subplot(111)
@@ -73,24 +80,54 @@ def plot_list(transient_list, title, dependence):
     ax.tick_params(axis='x', labelsize=12)
     ax.tick_params(axis='y', labelsize=12)
 
-    # dependence_parameter_values = []  # todo: make nice color iteration, that follows parameter value
-    # for scan in transient_list:
-    #     dependence_parameter_values.append(getattr(scan,dependence))
-    # minPar = min(dependence_parameter_values)
-    # maxPar = max(dependence_parameter_values)
-    # step = 1
-
-    colorlist = cm.rainbow(np.linspace(0, 1, len(transient_list)))
+    # todo: make nice color iteration, that follows parameter value
+        # using gcd didnt work, or the function for it is buggy
+    # colorlist_length, color_step = get_parameter_min_max_minstep(transient_list, dependence)
+    colorlist_length =  len(transient_list)
+    colorlist = cm.rainbow(np.linspace(0, 1, colorlist_length))
     color = iter(colorlist)
 
     for curve in transient_list:
         # l = str(scn[i].temperature) + 'K'
         xdata = curve.time
         ydata = curve.trace
-        c = next(color)
-        ax.plot(xdata, ydata, c=color, label=str(curve.temperature) + 'K', alpha=0.5)
-
+        parameter = getattr(curve, dependence)
+        col = next(color)
+        ax.plot(xdata, ydata, c=col, label=str(curve.temperature) + 'K', alpha=0.5)
     return fig
+
+
+def get_parameter_min_max_minstep(transient_list, dependence):
+    par_values = []
+    for item in transient_list:  # error
+        par_values.append(getattr(item, dependence))
+    par_values, size = sorted(par_values), len(par_values)
+    res = [par_values[i + 1] - par_values[i] for i in range(size) if i + 1 < size]
+    step = min(res)
+    minPar = min(par_values)
+    maxPar = max(par_values)
+
+    gcd = gcd_list(par_values)
+    print(par_values)
+    print(gcd)
+    even_list_len = (maxPar - minPar) / gcd
+    print(even_list_len)
+    return even_list_len, step
+
+
+def gcd(a, b):
+    if (b == 0):
+        return a
+    else:
+        return gcd(b, a % b)
+
+
+def gcd_list(A):
+    res = A[0]
+    for c in A[1::]:
+        res = gcd(res, c)
+    return res
+
 
 
 def get_data_from_files(file_list):
@@ -107,8 +144,10 @@ def get_data_from_files(file_list):
 
 
 def sort_scan_list_by_parameter(transients_list, parameter):
-    sorted_list = sorted(transients_list, key=lambda transients_list: getattr(transients_list,parameter))
+    sorted_list = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
     return sorted_list
+
+
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -116,7 +155,6 @@ def sort_scan_list_by_parameter(transients_list, parameter):
 
 
 def crap():
-
     scn = sorted(scn, key=lambda scn: scn.temperature)
 
     for i in range(len(scanlist) - 7):
@@ -158,11 +196,9 @@ def crap():
     plt3.set_xscale('log')
     plt3.set_ylim([0, 0.002])
 
-
     # fit temperature
     def expfunc(t, A, t0, c):
         return A * np.exp(- t / t0) + c
-
 
     poptDT, pcovDT = scipy.optimize.curve_fit(expfunc, temp[0:-7:1], tau[0:-7:1], p0=[1, 10, 1])
 
@@ -297,24 +333,23 @@ def generate_threeplot_window(Title, dependence):
     plt3 = fig.add_subplot(224)
     plt1.set_xlabel('Time [ps]', fontsize=18)
     plt1.set_ylabel('Differential Reflectivity', fontsize=18)
-    plt1.set_title('Fitted Scans',fontsize=26)
+    plt1.set_title('Fitted Scans', fontsize=26)
     plt1.tick_params(axis='x', labelsize=12)
     plt1.tick_params(axis='y', labelsize=12)
     plt2.set_xlabel(dependence, fontsize=18)
     plt2.set_ylabel('Decay Time [ps]', fontsize=18)
-    plt2.set_title('Decay time vs Temperature',fontsize=26)
+    plt2.set_title('Decay time vs Temperature', fontsize=26)
     plt2.tick_params(axis='x', labelsize=12)
     plt2.tick_params(axis='y', labelsize=12)
     plt3.set_xlabel('Temperature [K]', fontsize=18)
     plt3.set_ylabel('Amplitude', fontsize=18)
-    plt3.set_title('Decay time vs Temperature',fontsize=26)
+    plt3.set_title('Decay time vs Temperature', fontsize=26)
     plt3.tick_params(axis='x', labelsize=12)
     plt3.tick_params(axis='y', labelsize=12)
-    colorlist = cm.rainbow(np.linspace(0,1,len(os.listdir(dataDir))))
-    color=iter(colorlist)
+    colorlist = cm.rainbow(np.linspace(0, 1, len(os.listdir(dataDir))))
+    color = iter(colorlist)
 
-    return(plt1, plt2, plt3, color)
-
+    return (plt1, plt2, plt3, color)
 
 
 if __name__ == '__main__':
@@ -327,4 +362,3 @@ if __name__ == '__main__':
     # print('exited')
     # guess = [0.0005, 0.1, -1, -1]
     # fitparameters = []
-
