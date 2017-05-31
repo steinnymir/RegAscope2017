@@ -26,9 +26,9 @@ def main():
     csvfile = testpath + testcsv
 
     scanMat = Transient()
-    scanCSV = Transient()
-    scanMat.import_file(csvfile)
-    scanCSV.import_file(csvfile)
+    scanCSV = Transient(key_parameter='temperature', description='test')
+    # scanMat.import_file(csvfile)
+    scanCSV.import_file(csvfile, )
     metadata = scanCSV.get_metadata()
     for key, value in metadata.items():
         print('{0}: {1}'.format(key,value))
@@ -69,7 +69,7 @@ class Transient(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, key_parameter=None, description=None):
         """ """
 
         ######################################
@@ -81,10 +81,10 @@ class Transient(object):
 
         self.time = np.array([])  # cleaned time axis
         self.trace = np.array([])  # cleaned and modified data trace
-        self.description = None
-        self.key_parameter = None
+        self.description = description
+        self.key_parameter = key_parameter
         # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
-        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES', 'description')
+        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES')
 
         ######################################
         #              Metadata              #
@@ -128,6 +128,11 @@ class Transient(object):
 
         self.analysis_log = {}  # Keeps track of analysis changes performed
 
+        ######################################
+        #             input info             #
+        ######################################
+
+
     # %% metadata management
 
     def calc_energy_densities(self, rep_rate=283000):
@@ -149,12 +154,6 @@ class Transient(object):
                 print(energy)
                 setattr(self, (beam + '_energy'), energy)
 
-    def init_metadata(self):  # todo: Write this method
-        """
-        Initializes all metadata variables obtainable from the file name, when a file has the correct naming structure:
-            MaTeRiAl_pu12mW_pr5mW_de50mW_temp4K_pupol45_prpol-45_001.xxx
-        """
-        print("method initMetadata still not made...")
 
     def get_metadata(self):
         """ Returns a dictionary containing all metadata information available
@@ -281,10 +280,11 @@ class Transient(object):
 
     # %% import export
 
-    def import_file(self, filepath, cleanData=True):  # todo: add description import
+    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None):  # todo: add description import
         """Imports a file, csv or .mat
         uses self.import_file_mat() and self.import_file_csv,
         depending on file extension"""
+
         try:  # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
             basename = os.path.basename(filepath)
@@ -299,7 +299,11 @@ class Transient(object):
             else:
                 print("Invalid format. Couldn't import file: " + filepath)
             # self.importMetadata()
-            #self.give_name()
+            if key_parameter is not None:
+                self.key_parameter = key_parameter
+            if description is not None:
+                self.description = description
+            self.give_name()
             print('Imported {0} as {1}'.format(basename, self.name))
             if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
@@ -365,7 +369,7 @@ class Transient(object):
                 # if the first word corresponds to an attribute name
                 if word[0] in parameters:
                     key = word[0]
-                    value_string = word[1]
+                    value_string = word[1].replace(' ','')
                     if self.get_unit(key):
                         # if parameter expects units, get only numbers,
                         value = float(re.findall("\d+\.\d+", value_string)[0])
