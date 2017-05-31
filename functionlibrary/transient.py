@@ -29,7 +29,9 @@ def main():
     scanCSV = Transient()
     scanMat.import_file(csvfile)
     scanCSV.import_file(csvfile)
-    print(scanCSV.analysis_log)
+    metadata = scanCSV.get_metadata()
+    for key, value in metadata.items():
+        print('{0}: {1}'.format(key,value))
     # fig = plt.figure(num=1351)
     # axis = fig.add_subplot(111)
     # axis.plot(scanMat.time, 'o')
@@ -161,29 +163,14 @@ class Transient(object):
         """
         metadata = {'analysis_log': {}}  # make dict for metadata. Also create analysis_log entry, used later
         attributes = self.__dict__
-
-        for key in attributes:
-            if key not in self.DATA_ATTRIBUTES:  # ignore time, trace and all other fields defined in data_attributes
-                # if 'analysis_log' in key:
-                #     metadata['analysis_log'][key[13:-1:]] = attributes[key]  # todo: check why it needs key[13:-1]
-                # else:
+        print(type(attributes))
+        for key, value in attributes.items():
+            if key not in self.DATA_ATTRIBUTES and value is not None:  # ignore time, trace and all other fields defined in data_attributes
                 try:
                     # if parameter is a number != 0 append to metadata
-                    if float(attributes[key]) != 0:
-                        metadata[key] = attributes[key]
-                # if not a number, and not an empty string
-                except ValueError:
-                    if len(attributes[key]) == 0:
-                        pass
-                    else:
-                        metadata[key] = attributes[key]
-                # if not a number, and not an empty list
-                except TypeError:
-                    if len(attributes[key]) == 0:
-                        pass
-                    else:
-                        metadata[key] = attributes[key]
-
+                    metadata[key] = float(attributes[key])
+                except (TypeError, ValueError):
+                    metadata[key] = value
         return metadata
 
     def log_it(self, keyword, overwrite=False, *args, **kargs):
