@@ -18,7 +18,7 @@ import pandas
 
 def main():
     testmat = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat'
-    testcsv = 'RuCl3- 2017-04-19 17.33.14 Pump1.5mW Temp7.0K.txt'
+    testcsv = 'RuCl3_2017-04-19-17.04.46.txt'
     testpath = '..//test_scripts//test_data//'
     savepath = "E://DATA//RuCl3//"
 
@@ -27,21 +27,22 @@ def main():
 
     scanMat = Transient()
     scanCSV = Transient()
-    scanMat.import_file(matfile)
-
-    print('imported mat file\n')
+    scanMat.import_file(csvfile)
+    scanCSV.import_file(csvfile)
+    print(scanCSV.analysis_log)
     # fig = plt.figure(num=1351)
     # axis = fig.add_subplot(111)
     # axis.plot(scanMat.time, 'o')
     # print(scanMat.time[0:20])
     # print(scanMat.time[-20:-1])
-    scanMat.quickplot(raw=False)
-    scanMat.export_file_csv(testpath)
-    # getfile = gfs.choose_filename(testpath)
-    scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
-    print('result: ')
-    print(scanCSV.time[0:20])
-    scanCSV.quickplot()
+    # scanMat.quickplot(raw=False)
+    #
+    # scanMat.export_file_csv(testpath)
+    # # getfile = gfs.choose_filename(testpath)
+    # scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
+    # print('result: ')
+    # print(scanCSV.time[0:20])
+    # scanCSV.quickplot()
 
 
 #    scan2.import_single_file(csvfile)
@@ -78,8 +79,8 @@ class Transient(object):
 
         self.time = np.array([])  # cleaned time axis
         self.trace = np.array([])  # cleaned and modified data trace
-        self.description = ''
-        self.key_parameter = ''
+        self.description = None
+        self.key_parameter = None
         # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
         self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES', 'description')
 
@@ -87,38 +88,37 @@ class Transient(object):
         #              Metadata              #
         ######################################
 
-        self.name = ''  # String used as file name for saving data
-        self.material = ''  # Material name
-        self.date = ''  # Scan date in format YYYY-MM-DD hh.mm.ss
-        self.original_filepath = ''  # Path to original raw file
+        self.name = None  # String used as file name for saving data
+        self.material = None  # Material name
+        self.date = None  # Scan date in format YYYY-MM-DD hh.mm.ss
+        self.original_filepath = None  # Path to original raw file
 
         # parameters
 
-        self.pump_power = 0  # Pump Power [mW]
-        self.probe_power = 0  # Probe Power [mW]
-        self.destruction_power = 0  # Destruction Power [mW]
+        self.pump_power = None  # Pump Power [mW]
+        self.probe_power = None  # Probe Power [mW]
+        self.destruction_power = None  # Destruction Power [mW]
 
         # Spot size represents the FWHM diameter from Gaussian fit of the beam profile
-        self.pump_spot = 0  # Pump beam spot size [micrometers]
-        self.probe_spot = 0  # Probe beam spot size [micrometers]
-        self.destruction_spot = 0  # Destruction beam spot size [micrometers]
+        self.pump_spot = None  # Pump beam spot size [micrometers]
+        self.probe_spot = None  # Probe beam spot size [micrometers]
+        self.destruction_spot = None  # Destruction beam spot size [micrometers]
 
         # Excitation densities calculated from power, spot size and repetition rate
-        self.pump_energy = 0
-        self.probe_energy = 0
-        self.destruction_energy = 0
+        self.pump_energy = None
+        self.probe_energy = None
+        self.destruction_energy = None
 
         # destruction pulse parameters:
-        self.destruction_delay = 0  # delay between pump and destruction pulses, [ps]
+        self.t12 = None  # delay between pump and destruction pulses, [ps]
 
         # Polarization are measured clockwise in propagation direction of the beam, 0 = 12o'clock
-        self.pump_polarization = 0  # Pump beam polarization [deg]
-        self.probe_polarization = 0  # Probe beam polarization [deg]
-        self.destruction_polarization = 0  # Destruction beam polariz. [deg]
-        self.sample_orientation = 0  # Sample orientation [deg]
-        self.temperature = 0  # Temperature [K]
-        self.R0 = 0  # Static reflectivity
-        # self.T0 = 0             # Static Transimittivity
+        self.pump_polarization = None  # Pump beam polarization [deg]
+        self.probe_polarization = None  # Probe beam polarization [deg]
+        self.destruction_polarization = None  # Destruction beam polariz. [deg]
+        self.sample_orientation = None  # Sample orientation [deg]
+        self.temperature = None  # Temperature [K]
+        self.R0 = None  # Static reflectivity
 
         ######################################
         #              Analysis              #
@@ -160,33 +160,33 @@ class Transient(object):
             :rtype: dict
         """
         metadata = {'analysis_log': {}}  # make dict for metadata. Also create analysis_log entry, used later
-        var = self.__dict__
+        attributes = self.__dict__
 
-        for key in var:
+        for key in attributes:
             if key not in self.DATA_ATTRIBUTES:  # ignore time, trace and all other fields defined in data_attributes
-                if 'analysis_log' in key:
-                    metadata['analysis_log'][key[13:-1:]] = var[key]  # todo: check why it needs key[13:-1]
-                else:
-                    try:
-                        # if parameter is a number != 0 append to metadata
-                        if float(var[key]) != 0:
-                            metadata[key] = var[key]
-                    # if not a number, and not an empty string
-                    except ValueError:
-                        if len(var[key]) == 0:
-                            pass
-                        else:
-                            metadata[key] = var[key]
-                    # if not a number, and not an empty list
-                    except TypeError:
-                        if len(var[key]) == 0:
-                            pass
-                        else:
-                            metadata[key] = var[key]
+                # if 'analysis_log' in key:
+                #     metadata['analysis_log'][key[13:-1:]] = attributes[key]  # todo: check why it needs key[13:-1]
+                # else:
+                try:
+                    # if parameter is a number != 0 append to metadata
+                    if float(attributes[key]) != 0:
+                        metadata[key] = attributes[key]
+                # if not a number, and not an empty string
+                except ValueError:
+                    if len(attributes[key]) == 0:
+                        pass
+                    else:
+                        metadata[key] = attributes[key]
+                # if not a number, and not an empty list
+                except TypeError:
+                    if len(attributes[key]) == 0:
+                        pass
+                    else:
+                        metadata[key] = attributes[key]
 
         return metadata
 
-    def log_it(self, key, overwrite=False, *args, **kargs):
+    def log_it(self, keyword, overwrite=False, *args, **kargs):
         """
         Generate log entry for analysis_log.
             creates a key with given key in analysis_log, making it:
@@ -196,10 +196,12 @@ class Transient(object):
                 - dictionary if **kargs are passed
             if overwrite is False, it appends values on previous logs,
             if True, it obviously overwrites them.
+            :param key: string with name of analysis function used
             :type overwrite: bool
         """
 
-        key_string = 'analysis_log[' + key + ']'
+        #key_string = 'analysis_log[' + key + ']'
+
         # make the right type of entry for the log
         if kargs or args:
             if kargs:  # make a dictionary of parameters passed
@@ -216,35 +218,35 @@ class Transient(object):
         # the new entry.
         try:
             # prev = getattr(self, key_string)
-            prev = self.analysis_log[key]
+            previous_value = self.analysis_log[keyword]
             # if it finds such a key in this library, it overwrites/appends new information.
             if entry == None:  # trigger boolean behaviour, flipping previous registered status if available
-                self.analysis_log[key] = not prev
+                self.analysis_log[keyword] = not previous_value
 
             elif entry is list:
                 if overwrite:
-                    self.analysis_log[key] = entry
-                    setattr(self, key_string, prev + entry)
+                    self.analysis_log[keyword] = entry
+                    # setattr(self, key_string, previous_value + entry)
                 else:
-                    entry = prev.append(entry)
-                    self.analysis_log[key] = entry
+                    entry = previous_value.append(entry)
+                    self.analysis_log[keyword] = entry
             elif entry is dict:
                 if overwrite:
-                    self.analysis_log[key] = entry
+                    self.analysis_log[keyword] = entry
                 else:
                     new_entry = {}
                     for key in entry:
-                        if key in prev:
-                            new_entry[key] = prev[key].append(entry[key])
+                        if key in previous_value:
+                            new_entry[key] = previous_value[key].append(entry[key])
                         else:
                             new_entry[key] = entry[key]
 
-                    self.analysis_log[key] = new_entry
-        except KeyError:  # rises Key error when key was not previously assigned
+                    self.analysis_log[keyword] = new_entry
+        except KeyError:  # rises Key error when key was not previously assigned -> no previous record of this analysis
             if entry == None:  # if boolean, its it's first usage, therefore set it to true
-                setattr(self, key_string, True)
+                self.analysis_log[keyword] = True
             else:  # otherwise just append the list/dictionary.
-                setattr(self, key_string, entry)
+                self.analysis_log[keyword] = entry
 
     def give_name(self):
         """Define name attribute as material_date."""
@@ -310,7 +312,7 @@ class Transient(object):
             else:
                 print("Invalid format. Couldn't import file: " + filepath)
             # self.importMetadata()
-            self.give_name()
+            #self.give_name()
             print('Imported {0} as {1}'.format(basename, self.name))
             if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
@@ -557,10 +559,7 @@ class Transient(object):
         b, a = spsignal.butter(order, cutHigh, 'low', analog=False)
         self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')
         frequency = gfs.get_nyquist_frequency(self.time) * cutHigh
-        self.log_it('Low Pass Filter',
-                    frequency=frequency,
-                    nyq_factor=cutHigh,
-                    order=order)
+        self.log_it('Low Pass Filter', frequency=frequency, nyq_factor=cutHigh, order=order)
         if return_frequency:
             return frequency
 
