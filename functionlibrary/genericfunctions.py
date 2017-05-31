@@ -149,12 +149,12 @@ class class_attributes_string(object):
             self.__dict__[v] = v
 
 
-def get_metadata_from_name(filepath):
+def get_metadata_from_name(filepath):  # todo: this is shit! remake it...
     ''' Interprets name of file and returns a dictionary
     with all contained metadata.
     It requires a name with elements separated by ['-', '_', ',', ' '].
-    Example: RuCl3_pu_15mW_pr_5mW_t_4.5K.mat
-             RuCl3-pu-15mW-pr-5mW-t-4.5K.mat
+    Example: RuCl3_pu_15.0mW_pr_5.0mW_t_4.5K.mat
+             RuCl3-pu-15.0mW-pr-5.0mW-t-4.5K.mat
 
 
     ATTENTION: conflicts possible when using t12 as name for destruction delay, with temperature (labeled as t).
@@ -200,7 +200,8 @@ def get_metadata_from_name(filepath):
         for key, item in metadata_names.items():
             for parameter in item:
 
-                try:
+                try:  # todo: repair this functon! it doesnt work most of the times
+
                     # look for an identifier as defined in metadata_names and
                     # if there, get the value in the next item, that should be
                     # the value corresponding to such parameter

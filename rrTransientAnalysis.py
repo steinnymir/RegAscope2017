@@ -29,15 +29,23 @@ def main():
     pump_spot = 97
     probe_spot = 64
 
+    title = input('Title: ')
+    dependence = input('Key Parameter: ')
+    pump_spot = float(input('Pump Spot: '))
+    probe_spot = float(input('Probe Spot: '))
 
-    transient_list = get_data_from_files(file_list)  # import data
+
+    transient_list = get_data_from_files(file_list,key_parameter=dependence,description=title)  # import data
+
+
     for item in transient_list:  # iterate and correct scans
         item.description = title
         item.key_dependence = dependence
         item.pump_spot = pump_spot
         item.probe_spot = probe_spot
         item.calc_energy_densities()
-        item.give_name()  # todo: make the naming procedure simpler and more 'working'
+        item.give_name()
+        item.temperature = 300
 
         item.clean_data(flipTime=True, shiftTime=124.5, filterLowPass=0.005)
     print_series_parameters(transient_list)
@@ -53,15 +61,26 @@ def main():
     plt.show()
 
     save_dir = gfs.choose_folder(initialdir=dir)
-    save_dir += '/' + title + ' - ' + dependence + 'dependence'
+    save_dir += '/' + title + ' - ' + dependence + 'dependence/'
 
+    if os.path.exists(save_dir):
+        n=1
+        new_save_dir = save_dir + '_1'
+        while True:
+            if os.path.exists(new_save_dir):
+                n += 1
+                new_save_dir = new_save_dir.split('_')[0] + '_' + str(n)
+            else:
+                save_dir = new_save_dir
+    os.makedirs(save_dir)
     for item in transient_list:
         item.export_file_csv(save_dir)
 
+
 def print_series_parameters(transient_list):
-    print('\t\t\t\t Pump\tProbe\n----------------------------')
-    print('energy density:\t {0:3f}\t{1:3f}'.format(transient_list[0].pump_energy, transient_list[0].probe_energy))
-    print('power:\t\t\t {0}\t{1}'.format(transient_list[0].pump_power, transient_list[0].probe_power))
+    print('{0:16} {1:5} {2:5}'.format(' ','Pump', 'Probe'))
+    print('{0:16}:{1:.3f} {2:.3f}'.format('Energy Density',transient_list[0].pump_energy, transient_list[0].probe_energy))
+    print('{0:16}:{1:.3f} {2:.3f}'.format('Power',transient_list[0].pump_power, transient_list[0].probe_power))
 
 
 # define fitting function
@@ -130,11 +149,11 @@ def gcd_list(A):
 
 
 
-def get_data_from_files(file_list):
+def get_data_from_files(file_list, key_parameter=None, description=None):
     temp_list = []
     transients_list = []
     for i, file in enumerate(file_list):
-        temp_list.append(tr.Transient())
+        temp_list.append(tr.Transient(key_parameter=key_parameter,description=description))
         temp_list[i].import_file(file)
         if len(temp_list[i].time) != 0:  # important to not create empty scans in the list of scans
             transients_list.append(temp_list[i])

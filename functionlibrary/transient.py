@@ -142,8 +142,7 @@ class Transient(object):
         beams = ['pump', 'probe', 'destruction']
 
         for beam in beams:
-            if getattr(self, (beam + '_spot')) == 0:
-
+            if getattr(self, (beam + '_spot')) is None:
                 pass
             else:
                 power = getattr(self, (beam + '_power'))
@@ -151,7 +150,6 @@ class Transient(object):
                 if beam == 'pump':
                     rep_rate = rep_rate / 2  # pump has half reprate (darkcontrol)
                 energy = gfs.get_energy_density(spot, power, rep_rate)
-                print(energy)
                 setattr(self, (beam + '_energy'), energy)
 
 
@@ -162,7 +160,6 @@ class Transient(object):
         """
         metadata = {'analysis_log': {}}  # make dict for metadata. Also create analysis_log entry, used later
         attributes = self.__dict__
-        print(type(attributes))
         for key, value in attributes.items():
             if key not in self.DATA_ATTRIBUTES and value is not None:  # ignore time, trace and all other fields defined in data_attributes
                 try:
@@ -280,7 +277,7 @@ class Transient(object):
 
     # %% import export
 
-    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None):  # todo: add description import
+    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None):
         """Imports a file, csv or .mat
         uses self.import_file_mat() and self.import_file_csv,
         depending on file extension"""
@@ -400,7 +397,9 @@ class Transient(object):
         """
         # ----------- metadata -----------
 
-        self.give_name()  # creates a name for the file
+
+        #self.give_name()  # creates a name for the file
+        print('Exporting {0}'.format(self.name))
         metadata = self.get_metadata()
         logDict = metadata.pop('analysis_log', None)  # separate log, will be printed later
         logDict.pop('', None)  # remove the useless empty entry
@@ -582,7 +581,7 @@ class Transient(object):
         plt.show()
 
 
-class TransientsSet(object):
+class MultiTransients(object):
     def __init__(self):
         """ """
         self.transients_list = []
