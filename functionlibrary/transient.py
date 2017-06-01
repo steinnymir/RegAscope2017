@@ -8,6 +8,7 @@ Created on Mon May 15 09:57:29 2017
 from functionlibrary import genericfunctions as gfs
 import numpy as np
 import scipy as sp
+from matplotlib import cm, pyplot as plt
 import scipy.io as spio
 import scipy.signal as spsignal
 import matplotlib.pyplot as plt
@@ -17,39 +18,15 @@ import pandas
 
 
 def main():
-    testmat = 'RuCl3-Pr-0.5mW-Pu-1.5mW-T-005.0k-1kAVG.mat'
-    testcsv = 'RuCl3_2017-04-19-17.04.46.txt'
-    testpath = '..//test_scripts//test_data//'
-    savepath = "E://DATA//RuCl3//"
 
-    matfile = testpath + testmat
-    csvfile = testpath + testcsv
+    files = os.listdir('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence')
+    filepaths = []
+    for name in files:
+        filepaths.append('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence/' + name)
 
-    scanMat = Transient()
-    scanCSV = Transient(key_parameter='temperature', description='test')
-    # scanMat.import_file(csvfile)
-    scanCSV.import_file(csvfile, )
-    metadata = scanCSV.get_metadata()
-    for key, value in metadata.items():
-        print('{0}: {1}'.format(key,value))
-    # fig = plt.figure(num=1351)
-    # axis = fig.add_subplot(111)
-    # axis.plot(scanMat.time, 'o')
-    # print(scanMat.time[0:20])
-    # print(scanMat.time[-20:-1])
-    # scanMat.quickplot(raw=False)
-    #
-    # scanMat.export_file_csv(testpath)
-    # # getfile = gfs.choose_filename(testpath)
-    # scanCSV.import_file_csv(testpath + scanMat.name + '.txt')
-    # print('result: ')
-    # print(scanCSV.time[0:20])
-    # scanCSV.quickplot()
-
-
-#    scan2.import_single_file(csvfile)
-#    scan2.quickplot
-
+    series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence', key_parameter='temperature')
+    print(series.key_parameter)
+    series.quickplot()
 
 class Transient(object):
     """ Creates an object(OBJ) that contains data and metadata of a single time resolved scan. The standard scan is that
@@ -70,7 +47,10 @@ class Transient(object):
     """
 
     def __init__(self, key_parameter=None, description=None):
-        """ """
+        """
+        :param key_parameter: str, name of parameter iterated in the series this scan belongs to.
+        :param description: description of the scan/series.
+        """
 
         ######################################
         #                Data                #
@@ -132,7 +112,6 @@ class Transient(object):
         #             input info             #
         ######################################
 
-
     # %% metadata management
 
     def calc_energy_densities(self, rep_rate=283000):
@@ -152,6 +131,13 @@ class Transient(object):
                 energy = gfs.get_energy_density(spot, power, rep_rate)
                 setattr(self, (beam + '_energy'), energy)
 
+    def input_attribute(self, attribute_name, value):
+        """
+        manually input values for metadata attributes
+        :param attribute_name: name of parameter or attribute
+        :param value: value to assign to parameter
+        """
+        setattr(self, attribute_name, value)
 
     def get_metadata(self):
         """ Returns a dictionary containing all metadata information available
@@ -183,7 +169,7 @@ class Transient(object):
             :type overwrite: bool
         """
 
-        #key_string = 'analysis_log[' + key + ']'
+        # key_string = 'analysis_log[' + key + ']'
 
         # make the right type of entry for the log
         if kargs or args:
@@ -238,7 +224,6 @@ class Transient(object):
             self.key_parameter = input('What is the Key parameter for basename?  ')
         if self.description is None:
             self.description = input('Add brief description for file name:  ')
-
 
         self.name = (str(self.material) + '_' +
                      str(self.description) + '_' +
@@ -366,7 +351,7 @@ class Transient(object):
                 # if the first word corresponds to an attribute name
                 if word[0] in parameters:
                     key = word[0]
-                    value_string = word[1].replace(' ','')
+                    value_string = word[1].replace(' ', '')
                     if self.get_unit(key):
                         # if parameter expects units, get only numbers,
                         value = float(re.findall("\d+\.\d+", value_string)[0])
@@ -398,7 +383,7 @@ class Transient(object):
         # ----------- metadata -----------
 
 
-        #self.give_name()  # creates a name for the file
+        # self.give_name()  # creates a name for the file
         print('Exporting {0}'.format(self.name))
         metadata = self.get_metadata()
         logDict = metadata.pop('analysis_log', None)  # separate log, will be printed later
@@ -525,17 +510,21 @@ class Transient(object):
         offset is caluclated with 40 points (~700fs) taken at negative time delays.
         such delay is at the end of the scan in raw data, or at the beginning
         if scan was reverted by flip_time """
-
         try:
-            if self.analysis_log['Flip Time']: pass
-            shift = np.average(self.trace[0:window:1])
+            reverted = self.analysis_log['Flip Time']
         except KeyError:
+            reverted = False
+
+        if reverted:
+            shift = np.average(self.trace[0:window:1])
+        else:
             tpoints = len(self.time)
             shift = np.average(self.trace[tpoints - window:tpoints:1])
+
         self.trace = self.trace - shift
         self.log_it('Remove DC', window=window, shift=shift)
 
-    def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):
+    def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):  # todo: add different methods between which to choose
         """ apply simple low pass filter to data. if return_frequency is True, returns the filter frequency value
         in THz ( if time data is in ps)
 
@@ -582,22 +571,51 @@ class Transient(object):
 
 
 class MultiTransients(object):
-    def __init__(self):
-        """ """
-        self.transients_list = []
-        self.transients = []
+    """ list of transients corresponding to a certain dependence series"""
+
+    datadir = 'C:/Users/sagustss/py_code/DATA'
+
+    def __init__(self, transients_list=None, series_name=None, description=None, key_parameter=None):
+        """
+        Initialize the transients_list can be a list of transient objects or of path strings pointing to data files
+        :param transients_list: can be a list of transient objects or of path strings pointing to data files or None
+        if not given, will create an empty object, where to later load data.
+        :param series_name: title of the series, used for printing on graphs for example.
+        :param description: some description.. not really used.
+        :param key_parameter: the parameter which changes throughout each scan, making it a "key_parameter" dependence series.
+        """
+
+        if transients_list is None:
+            self.transients = []
+            self.key_parameter = None
+            self.description = None
+            self.series_name = None
+            self.metadata = None
+        else:
+            if type(transients_list[0]) == Transient:
+                self.transients = transients_list
+            elif type(transients_list[0]) == str:
+                self.transients = []
+                self.import_files(transients_list)
+            self.metadata = self.get_metadata()
+            if key_parameter is None:
+                self.key_parameter = self.get_dependence_parameter()
+            else:
+                self.key_parameter = key_parameter
+            self.description = description
+            self.series_name = series_name
+        self.sort_scan_list_by_parameter()
 
     # %% Metadata
 
-    def get_dependence_parameter(self):
+    def get_dependence_parameter(self):  # todo: fix it, doesnt work, unhashable dict in definition of valdic
         """find the variable parameter within the series of scans.
         :returns : str name of dependence parameter, list of str if multiple dependence parameters found, also prints
         message.
         """
-        metadata = self.get_metadata()
         dependence_parameter = []
-        for key in metadata:
-            valdic = {i: metadata[key].count(i) for i in metadata[key]}
+        for key in self.metadata:
+            valdic = {i: self.metadata[key].count(i) for i in self.metadata[key]}
             if len(valdic) != 1:
                 dependence_parameter.append(key)
         if 'date' in dependence_parameter:
@@ -606,6 +624,12 @@ class MultiTransients(object):
             dependence_parameter.remove('originalfilename')
         if len(dependence_parameter) > 1:
             print("Warning: multiple variables change between scans")
+            print('Please choose between:')
+            for parameter in dependence_parameter:
+                print(parameter)
+            dependence_parameter = input('\nEnter chosen key parameter: ')
+        if len(dependence_parameter) < len(self.transients):
+            print('Warning: multiple scans with same key parameter')
         else:
             dependence_parameter = str(dependence_parameter)
         return dependence_parameter
@@ -622,9 +646,9 @@ class MultiTransients(object):
         # construct a dictionary containing all metadata
         skip = True  # skip first entry, since it was already written during
         # initialization
-        for scan in self.transients:
+        for transient in self.transients:
             if not skip:
-                md = scan.get_metadata()
+                md = transient.get_metadata()
                 for key in metadata:
                     metadata[key].append(md[key])
             else:
@@ -633,7 +657,7 @@ class MultiTransients(object):
 
     # %% Import Export
 
-    def import_files(self, files, append=False):
+    def import_files(self, files, append=False, key_parameter=None, description=None):
         """imports any series of data files. Files can be:
                - string of full path of a single scan
                - list of full paths of a single scan
@@ -644,32 +668,67 @@ class MultiTransients(object):
             self.transients = []  # clear scans in memory
             # check if 'files' is single file (str), list of files ([str,str,...]) or folder containing files.
         if isinstance(files, str):
-            self.transients.append(Transient())
-            self.transients[-1].import_single_file(files)
+            self.transients.append(Transient(key_parameter=key_parameter, description=description))
+            self.transients[-1].import_file(files)
             print('Imported file ' + files)
         elif isinstance(files, list):
             for i in range(len(files)):
-                self.transients.append(Transient())
-                self.transients[-1].import_single_file(files[i])
+                self.transients.append(Transient(key_parameter=key_parameter, description=description))
+                self.transients[-1].import_file(files[i])
             print('Imported files form list')
         elif os.path.isdir(files):
             folderlist = os.listdir(files)
             for i in range(len(folderlist)):
                 fullpath = files + '//' + folderlist[i]
-                self.transients.append(Transient())
-                self.transients[-1].import_single_file(fullpath)
+                self.transients.append(Transient(key_parameter=key_parameter, description=description))
+                self.transients[-1].import_file(fullpath)
                 print('Imported files form folder')
-        self.update_scan_list()
 
-    def update_scan_list(self):
-        """ Update the list of names of the single scans in self.scans.
-        Name is taken from 'name' attribute of Transient() class.
+
+                # %% data analysis
+
+    def export_series_CSV(self, directory):  # todo: implement dynamic paramter choosing option
+        """ creates a directory inside the given directory where it will save all data in csv format."""
+        save_dir = directory + '/' + self.series_name
+        if os.path.exists(save_dir):
+            n = 1
+            new_save_dir = save_dir + '_1'
+            while True:
+                if os.path.exists(new_save_dir):
+                    n += 1
+                    new_save_dir = new_save_dir.split('_')[0] + '_' + str(n)
+                else:
+                    save_dir = new_save_dir
+        os.makedirs(save_dir)
+        for item in self.transients:
+            item.export_file_csv(save_dir)
+
+    def clean_data_all_scans(self, cropTimeScale=True, shiftTime=0, flipTime=True, removeDC=True, filterLowPass=True,
+                   flipTrace=False):
         """
-        self.transients_list = []
-        for i in range(len(self.transients)):
-            self.transients_list.append(self.transients[i].name)
 
-            # %% data analysis
+        :return:
+        """
+        for transient in self.transients:
+            transient.clean_data(cropTimeScale=cropTimeScale, shiftTime=shiftTime, flipTime=flipTime, removeDC=removeDC,
+                                 filterLowPass=filterLowPass, flipTrace=flipTrace)
+
+
+    def input_attribute(self, attribute_name, value):
+        """
+        manually input values for metadata attributes
+        :param attribute_name: name of parameter or attribute
+        :param value: value to assign to parameter
+        """
+        setattr(self, attribute_name, value)
+
+    def sort_scan_list_by_parameter(self):
+        transients_list = self.transients
+        parameter = self.key_parameter
+        sorted_list = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
+        return sorted_list
+
+    # %% analysis
 
     def filter_low_pass(self, cutHigh=0.1, order=2):
         for item in self.transients:
@@ -693,6 +752,45 @@ class MultiTransients(object):
 
 
             # %% plot functions
+
+    # %% plot
+
+    def quickplot(self):
+        """ simple plot of a list of transients """
+        fig = plt.figure(num=516542)
+        plt.clf()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('Time [ps]', fontsize=18)
+        ax.set_ylabel('Differential Reflectivity', fontsize=18)
+        ax.set_title(self.series_name, fontsize=26)
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+
+        key_parameter_values = []
+        for transient in self.transients:
+            key_parameter_values.append(getattr(transient, self.key_parameter))
+
+        key_parameter_max= max(key_parameter_values)
+        print(key_parameter_max)
+        n=1
+        # while key_parameter_range % 10 != 0:
+        #     n *=10
+        #     key_parameter_range * n
+
+        colorlist = cm.rainbow(np.linspace(0, 1, 1001))
+        #colorlist = cm.rainbow(np.logspace(0,3,1000)) / 100
+
+        for curve in self.transients:
+            # l = str(scn[i].temperature) + 'K'
+            xdata = curve.time
+            ydata = curve.trace
+            parameter = getattr(curve, self.key_parameter)
+            parameter_label = str('{0} {1}'.format(parameter, curve.get_unit(self.key_parameter)))
+            color_number = (parameter / key_parameter_max ) * 999
+            print(color_number)
+            ax.plot(xdata, ydata, c=colorlist[color_number], label=str() + 'K', alpha=0.5)
+        plt.show()
+        return fig
 
     def rrPlot3d(self, Yparameter='Sample Orientation', title='3dplot', Xlabel='Time, ps',
                  Zlabel='Kerr rotation (mrad)',
