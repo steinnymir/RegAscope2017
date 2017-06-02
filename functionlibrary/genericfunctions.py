@@ -259,7 +259,7 @@ def get_energy_density(spot_size=100, power=1, rep_rate=283000):
         reprate in Hz
     """
     area = ((spot_size / 2) ** 2 * spconst.pi) / 10 ** 8
-    return power / (rep_rate * area)
+    return (power / (rep_rate * area))
 
 
 def get_nyquist_frequency(timedata):

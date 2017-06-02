@@ -5,37 +5,36 @@ Created on Wed May  3 10:37:19 2017
 @author: sagustss
 """
 
-from functionlibrary import transient as tr
-from functionlibrary import genericfunctions as gfs
-from functionlibrary import redred as rr
-
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
-import tkinter as tk
-from tkinter import filedialog
 from matplotlib import cm
+
+from functionlibrary import genericfunctions as gfs
+from functionlibrary import redred as rr
+from functionlibrary.transient import Transient, MultiTransients
 
 
 def main():
     # select files from folder:
-    dir = 'C:/Users/sagustss/py_code/DATA/_RAW/RuCl3/2017-04-19/'
-    dir_s = 'C:/Users/sagustss/py_code/DATA/'
+    dir = 'C:/Users/sagustss/py_code/DATA/RuCl3/'
+    dir_s = dir
     file_list = gfs.choose_filenames(initialdir=dir)
 
-    title = 'Low Fluence'
-    dependence = 'temperature'
-    pump_spot = 97
-    probe_spot = 64
-
-    title = input('Title: ')
-    dependence = input('Key Parameter: ')
-    pump_spot = float(input('Pump Spot: '))
-    probe_spot = float(input('Probe Spot: '))
-
-
-    transient_list = get_data_from_files(file_list,key_parameter=dependence,description=title)  # import data
+    data = MultiTransients()
+    data.import_files(file_list)
+    for scan in data.transients:
+        scan.pump_energy = round(scan.pump_energy,3)
+        scan.probe_energy = round(scan.probe_energy,3)
+    data.give_name('Low Temperature Low Fluence')
+    # metadata = data.get_metadata()
+    # for key in metadata:
+    #     print(key,metadata[key])
+    print(data.key_parameter)
+    print(data.transients[0].key_parameter)
+    print(data.series_name)
 
 
     for item in transient_list:  # iterate and correct scans
