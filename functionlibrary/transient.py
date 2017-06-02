@@ -8,27 +8,28 @@ Created on Mon May 15 09:57:29 2017
 from functionlibrary import genericfunctions as gfs
 import numpy as np
 import scipy as sp
-from matplotlib import cm, pyplot as plt
+from matplotlib import cm, pyplot as plt, colorbar
 import scipy.io as spio
 import scipy.signal as spsignal
-import matplotlib.pyplot as plt
 import os
 import re
 import pandas
 
 
 def main():
-
     files = os.listdir('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence')
     filepaths = []
     for name in files:
         filepaths.append('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence/' + name)
 
-    series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence', key_parameter='temperature')
+    series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence',
+                             key_parameter='temperature')
     print(series.key_parameter)
     series.quickplot()
 
     plt.show()
+
+
 class Transient(object):
     """ Creates an object(OBJ) that contains data and metadata of a single time resolved scan. The standard scan is that
     obtained from a single color pump probe setup, aka 'RedRed'.
@@ -133,7 +134,7 @@ class Transient(object):
                 spot = getattr(self, (beam + '_spot'))
                 if beam == 'pump':
                     rep_rate = rep_rate / 2  # pump has half reprate (darkcontrol)
-                energy = round(gfs.get_energy_density(spot, power, rep_rate),3)
+                energy = round(gfs.get_energy_density(spot, power, rep_rate), 3)
                 print(energy)
                 setattr(self, (beam + '_energy'), energy)
 
@@ -530,7 +531,8 @@ class Transient(object):
         self.trace = self.trace - shift
         self.log_it('Remove DC', window=window, shift=shift)
 
-    def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):  # todo: add different methods between which to choose
+    def filter_low_pass(self, cutHigh=0.1, order=1,
+                        return_frequency=False):  # todo: add different methods between which to choose
         """ apply simple low pass filter to data. if return_frequency is True, returns the filter frequency value
         in THz ( if time data is in ps)
 
@@ -618,7 +620,7 @@ class MultiTransients(object):
 
     # %% Metadata
 
-    def give_name(self,name=None):
+    def give_name(self, name=None):
 
         if name is None:
             name = input('Choose a name for this series')
@@ -679,7 +681,7 @@ class MultiTransients(object):
         for scan in self.transients:
             scan.key_parameter = self.key_parameter
             scan.description = self.description
-            scan.series_name =  self.series_name
+            scan.series_name = self.series_name
             scan.material = self.material
 
     # %% Import Export
@@ -718,7 +720,7 @@ class MultiTransients(object):
             self.transients.append(Transient(key_parameter=key_parameter, description=description))
             self.transients[-1].import_file(files)
             print('Imported file ' + files)
-        elif isinstance(files, list) or isinstance(files,tuple):
+        elif isinstance(files, list) or isinstance(files, tuple):
             for i in range(len(files)):
                 self.transients.append(Transient(key_parameter=key_parameter, description=description))
                 self.transients[-1].import_file(files[i])
@@ -734,7 +736,7 @@ class MultiTransients(object):
         # self.key_parameter = self.get_dependence_parameter()
         # self.sort_scan_list_by_parameter()  # todo: uncomment when get dependence parmater is fixed
 
-                # %% data analysis
+        # %% data analysis
 
     def saveas_csv(self, directory=None):  # todo: implement dynamic paramter choosing option
         """ creates a directory inside the given directory where it will save all data in csv format."""
@@ -756,7 +758,7 @@ class MultiTransients(object):
             item.export_file_csv(save_dir)
 
     def clean_data_all_scans(self, cropTimeScale=True, shiftTime=0, flipTime=True, removeDC=True, filterLowPass=True,
-                   flipTrace=False):
+                             flipTrace=False):
         """
 
         :return:
@@ -764,7 +766,6 @@ class MultiTransients(object):
         for transient in self.transients:
             transient.clean_data(cropTimeScale=cropTimeScale, shiftTime=shiftTime, flipTime=flipTime, removeDC=removeDC,
                                  filterLowPass=filterLowPass, flipTrace=flipTrace)
-
 
     def input_attribute(self, attribute_name, value):
         """
@@ -778,7 +779,7 @@ class MultiTransients(object):
         transients_list = self.transients
         parameter = self.key_parameter
         self.transients = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
-        #return sorted_list
+        # return sorted_list
 
     # %% analysis
 
@@ -808,6 +809,31 @@ class MultiTransients(object):
     # %% plot
 
     def quickplot(self):
+        """ simple plot of a list of transients """  # todo: move to transients.py -> under multitransients()
+        fig = plt.figure(num=1)
+        plt.clf()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('Time [ps]', fontsize=18)
+        ax.set_ylabel('Differential Reflectivity', fontsize=18)
+        ax.set_title(self.series_name, fontsize=26)
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+
+        # todo: make nice color iteration, that follows parameter value
+        colorlist_length = len(self.transients)
+        colorlist = plt.cm.rainbow(np.linspace(0, 1, colorlist_length))
+        color = iter(colorlist)
+
+
+        for curve in self.transients:
+            xdata = curve.time
+            ydata = curve.trace
+            label = str(getattr(curve, self.key_parameter)) + str(curve.get_unit(self.key_parameter))
+            col = next(color)
+            ax.plot(xdata, ydata, c=col, label=label, alpha=0.7)
+        return fig
+
+    def quickplot_OLD(self):
         """ simple plot of a list of transients """
         fig = plt.figure(num=516542)
         plt.clf()
@@ -822,15 +848,15 @@ class MultiTransients(object):
         for transient in self.transients:
             key_parameter_values.append(getattr(transient, self.key_parameter))
 
-        key_parameter_max= max(key_parameter_values)
+        key_parameter_max = max(key_parameter_values)
         print(key_parameter_max)
-        n=1
+        n = 1
         # while key_parameter_range % 10 != 0:
         #     n *=10
         #     key_parameter_range * n
 
         colorlist = cm.rainbow(np.linspace(0, 1, 1001))
-        #colorlist = cm.rainbow(np.logspace(0,3,1000)) / 100
+        # colorlist = cm.rainbow(np.logspace(0,3,1000)) / 100
 
         for curve in self.transients:
             # l = str(scn[i].temperature) + 'K'
@@ -838,8 +864,8 @@ class MultiTransients(object):
             ydata = curve.trace
             parameter = float(getattr(curve, self.key_parameter))
             parameter_label = str('{0} {1}'.format(parameter, curve.get_unit(self.key_parameter)))
-            color_number = (parameter / key_parameter_max ) * 999
-            print(color_number,parameter)
+            color_number = (parameter / key_parameter_max) * 999
+            print(color_number, parameter)
             ax.plot(xdata, ydata, c=colorlist[color_number], label=str() + 'K', alpha=0.5)
         plt.draw()
         return fig
@@ -880,7 +906,6 @@ class MultiTransients(object):
         ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
         ax.set_title(title, fontsize=40)
         plt.show()
-
 
 
 if __name__ == "__main__":

@@ -25,55 +25,12 @@ def main():
 
     data = MultiTransients()
     data.import_files(file_list)
-    for scan in data.transients:
-        scan.pump_energy = round(scan.pump_energy,3)
-        scan.probe_energy = round(scan.probe_energy,3)
-    data.give_name('Low Temperature Low Fluence')
-    # metadata = data.get_metadata()
-    # for key in metadata:
-    #     print(key,metadata[key])
-    print(data.key_parameter)
-    print(data.transients[0].key_parameter)
-    print(data.series_name)
 
+    print(data.series_name,'   ',data.key_parameter)
 
-    for item in transient_list:  # iterate and correct scans
-        item.description = title
-        item.key_dependence = dependence
-        item.pump_spot = pump_spot
-        item.probe_spot = probe_spot
-        item.calc_energy_densities()
-        item.give_name()
-        item.temperature = 300
-
-        item.clean_data(flipTime=True, shiftTime=124.5, filterLowPass=0.005)
-    print_series_parameters(transient_list)
-
-
-
-
-
-
-    transient_list = sort_scan_list_by_parameter(transient_list, dependence)
-
-    quickplot_list(transient_list, title, dependence)
+    data.quickplot()
     plt.show()
 
-    save_dir = gfs.choose_folder(initialdir=dir)
-    save_dir += '/' + title + ' - ' + dependence + 'dependence/'
-
-    if os.path.exists(save_dir):
-        n=1
-        new_save_dir = save_dir + '_1'
-        while True:
-            if os.path.exists(new_save_dir):
-                n += 1
-                new_save_dir = new_save_dir.split('_')[0] + '_' + str(n)
-            else:
-                save_dir = new_save_dir
-    os.makedirs(save_dir)
-    for item in transient_list:
-        item.export_file_csv(save_dir)
 
 
 def print_series_parameters(transient_list):
