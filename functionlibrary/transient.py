@@ -65,6 +65,10 @@ class Transient(object):
         self.trace = np.array([])  # cleaned and modified data trace
         self.description = description
         self.key_parameter = key_parameter
+        if self.key_parameter is not None:
+            self.key_parameter_value = getattr(self, self.key_parameter)
+        else:
+            self.key_parameter_value = None
         self.series_name = series_name
         # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
         self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES')
@@ -114,11 +118,20 @@ class Transient(object):
         self.fit_parameters = None
 
 
+
+
+
         ######################################
         #             input info             #
         ######################################
 
     # %% metadata management
+    def key_parameter_value(self):
+        try:
+            self.key_parameter_value = getattr(self, str(self.key_parameter))
+            return self.key_parameter_value
+        except AttributeError:
+            raise AttributeError('No key parameter detected.')
 
     def calc_energy_densities(self, rep_rate=283000):
         """ recalculate metadata depending on given parameters.
@@ -586,11 +599,15 @@ class MultiTransients(object):
     def __init__(self, transients_list=None, series_name=None, description=None, key_parameter=None):
         """
         Initialize the transients_list can be a list of transient objects or of path strings pointing to data files
-        :param transients_list: can be a list of transient objects or of path strings pointing to data files or None
-        if not given, will create an empty object, where to later load data.
-        :param series_name: title of the series, used for printing on graphs for example.
-        :param description: some description.. not really used.
-        :param key_parameter: the parameter which changes throughout each scan, making it a "key_parameter" dependence series.
+        :param transients_list: list
+            can be a list of transient objects or of path strings pointing to data files or None
+            if not given, will create an empty object, where to later load data.
+        :param series_name: str
+            title of the series, used for printing on graphs for example.
+        :param description: str
+            some description.. not really used.
+        :param key_parameter: str
+            the parameter which changes throughout each scan, making it a "key_parameter" dependence series.
         """
 
         if transients_list is None:
@@ -599,7 +616,7 @@ class MultiTransients(object):
             self.description = None
             self.series_name = None
             self.material = None
-
+            self.key_parameter_list = None
             self.metadata = None
 
         else:
@@ -611,12 +628,28 @@ class MultiTransients(object):
                 self.import_files(transients_list)
             self.metadata = self.get_metadata()
             if key_parameter is None:
-                self.key_parameter = self.get_dependence_parameter()
+                self.key_parameter = self.transients[0].key_parameter
+                if self.key_parameter is None:
+                    self.key_parameter = self.get_dependence_parameter()
             else:
                 self.key_parameter = key_parameter
-            self.description = description
-            self.series_name = series_name
+            if description is None:
+                self.description = self.transients[0].description
+                if self.description is None:
+                    self.description = None
+            else:
+                self.description = description
+            if series_name is None:
+                self.series_name = self.transients[0].series_name
+                if self.series_name is None:
+                    self.series_name = None
+            else:
+                self.series_name = series_name
+
+            self.key_parameter_list = []
+
         self.sort_scan_list_by_parameter()
+        self.update_key_parameter_list()
 
     # %% Metadata
 
@@ -635,7 +668,7 @@ class MultiTransients(object):
         """
         dependence_parameter = []
         for key in self.metadata:
-            valdic = {i: self.metadata[key].count(i) for i in self.metadata[key]}
+            valdic = {i: self.metadata[key].count(i) for i in frozenset(self.metadata[key])}
             if len(valdic) != 1:
                 dependence_parameter.append(key)
         if 'date' in dependence_parameter:
@@ -775,12 +808,18 @@ class MultiTransients(object):
         """
         setattr(self, attribute_name, value)
 
-    def sort_scan_list_by_parameter(self):
+    def sort_scan_list_by_parameter(self, reverse=False):
         transients_list = self.transients
         parameter = self.key_parameter
-        self.transients = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
-        # return sorted_list
+        # self.transients = sorted(self.transients, key=lambda transients: getattr(transients, parameter))
+        self.transients.sort(key=lambda x: getattr(x, parameter), reverse=reverse)
+        self.update_key_parameter_list()
 
+        # return sorted_list
+    def update_key_parameter_list(self):
+        self.key_parameter_list = []
+        for transient in self.transients:
+            self.key_parameter_list.append(getattr(transient, self.key_parameter))
     # %% analysis
 
     def filter_low_pass(self, cutHigh=0.1, order=2):
@@ -823,7 +862,6 @@ class MultiTransients(object):
         colorlist_length = len(self.transients)
         colorlist = plt.cm.rainbow(np.linspace(0, 1, colorlist_length))
         color = iter(colorlist)
-
 
         for curve in self.transients:
             xdata = curve.time

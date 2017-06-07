@@ -23,13 +23,15 @@ def main():
     dir_s = dir
     file_list = gfs.choose_filenames(initialdir=dir)
 
-    data = MultiTransients()
-    data.import_files(file_list)
+    data = MultiTransients(file_list)
+    # data.import_files(file_list)
 
     print(data.series_name,'   ',data.key_parameter)
 
     data.quickplot()
     plt.show()
+
+    print(data.key_parameter_list)
 
 
 
@@ -42,7 +44,6 @@ def print_series_parameters(transient_list):
 # define fitting function
 def func(x, A, t0, c, d):
     return A * np.exp(- x / t0) + c * x + d
-
 
 def quickplot_list(transient_list, title, dependence):
     """ simple plot of a list of transients """  # todo: move to transients.py -> under multitransients()
@@ -71,7 +72,6 @@ def quickplot_list(transient_list, title, dependence):
         ax.plot(xdata, ydata, c=col, label=str(curve.temperature) + 'K', alpha=0.5)
     return fig
 
-
 def get_parameter_min_max_minstep(transient_list, dependence):
     par_values = []
     for item in transient_list:  # error
@@ -89,21 +89,17 @@ def get_parameter_min_max_minstep(transient_list, dependence):
     print(even_list_len)
     return even_list_len, step
 
-
 def gcd(a, b):
     if (b == 0):
         return a
     else:
         return gcd(b, a % b)
 
-
 def gcd_list(A):
     res = A[0]
     for c in A[1::]:
         res = gcd(res, c)
     return res
-
-
 
 def get_data_from_files(file_list, key_parameter=None, description=None):
     temp_list = []
@@ -117,11 +113,35 @@ def get_data_from_files(file_list, key_parameter=None, description=None):
 
     return transients_list
 
-
 def sort_scan_list_by_parameter(transients_list, parameter):
     sorted_list = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
     return sorted_list
 
+def generate_threeplot_window(Title, dependence):
+    fig = plt.figure(Title, figsize=(19, 10))
+    plt.clf()
+    plt1 = fig.add_subplot(121)
+    plt2 = fig.add_subplot(222)
+    plt3 = fig.add_subplot(224)
+    plt1.set_xlabel('Time [ps]', fontsize=18)
+    plt1.set_ylabel('Differential Reflectivity', fontsize=18)
+    plt1.set_title('Fitted Scans', fontsize=26)
+    plt1.tick_params(axis='x', labelsize=12)
+    plt1.tick_params(axis='y', labelsize=12)
+    plt2.set_xlabel(dependence, fontsize=18)
+    plt2.set_ylabel('Decay Time [ps]', fontsize=18)
+    plt2.set_title('Decay time vs Temperature', fontsize=26)
+    plt2.tick_params(axis='x', labelsize=12)
+    plt2.tick_params(axis='y', labelsize=12)
+    plt3.set_xlabel('Temperature [K]', fontsize=18)
+    plt3.set_ylabel('Amplitude', fontsize=18)
+    plt3.set_title('Decay time vs Temperature', fontsize=26)
+    plt3.tick_params(axis='x', labelsize=12)
+    plt3.tick_params(axis='y', labelsize=12)
+    colorlist = cm.rainbow(np.linspace(0, 1, len(os.listdir(dataDir))))
+    color = iter(colorlist)
+
+    return (plt1, plt2, plt3, color)
 
 ########################################################################################################################
 ########################################################################################################################
@@ -300,31 +320,7 @@ def crap():
     fig.savefig(savename + '.png', format='png')
 
 
-def generate_threeplot_window(Title, dependence):
-    fig = plt.figure(Title, figsize=(19, 10))
-    plt.clf()
-    plt1 = fig.add_subplot(121)
-    plt2 = fig.add_subplot(222)
-    plt3 = fig.add_subplot(224)
-    plt1.set_xlabel('Time [ps]', fontsize=18)
-    plt1.set_ylabel('Differential Reflectivity', fontsize=18)
-    plt1.set_title('Fitted Scans', fontsize=26)
-    plt1.tick_params(axis='x', labelsize=12)
-    plt1.tick_params(axis='y', labelsize=12)
-    plt2.set_xlabel(dependence, fontsize=18)
-    plt2.set_ylabel('Decay Time [ps]', fontsize=18)
-    plt2.set_title('Decay time vs Temperature', fontsize=26)
-    plt2.tick_params(axis='x', labelsize=12)
-    plt2.tick_params(axis='y', labelsize=12)
-    plt3.set_xlabel('Temperature [K]', fontsize=18)
-    plt3.set_ylabel('Amplitude', fontsize=18)
-    plt3.set_title('Decay time vs Temperature', fontsize=26)
-    plt3.tick_params(axis='x', labelsize=12)
-    plt3.tick_params(axis='y', labelsize=12)
-    colorlist = cm.rainbow(np.linspace(0, 1, len(os.listdir(dataDir))))
-    color = iter(colorlist)
 
-    return (plt1, plt2, plt3, color)
 
 
 if __name__ == '__main__':
