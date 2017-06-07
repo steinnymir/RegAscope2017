@@ -17,10 +17,10 @@ import pandas
 
 
 def main():
-    files = os.listdir('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence')
+    files = os.listdir('C:/data/RuCl3/Low Fluence_temperature')
     filepaths = []
     for name in files:
-        filepaths.append('C:/Users/sagustss/py_code/DATA/RuCl3/Low Fluence - temperature dependence/' + name)
+        filepaths.append('C:/data/RuCl3/Low Fluence_temperature/' + name)
 
     series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence',
                              key_parameter='temperature')
@@ -836,7 +836,7 @@ class MultiTransients(object):
     def quickplot_OLD(self):
         """ simple plot of a list of transients """
         fig = plt.figure(num=516542)
-        plt.clf()
+        plt.clf()  #
         ax = fig.add_subplot(111)
         ax.set_xlabel('Time [ps]', fontsize=18)
         ax.set_ylabel('Differential Reflectivity', fontsize=18)
