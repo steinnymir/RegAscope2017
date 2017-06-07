@@ -8,6 +8,8 @@ Created on Mon May 15 09:57:29 2017
 from functionlibrary import genericfunctions as gfs
 import numpy as np
 import scipy as sp
+from scipy.optimize import curve_fit, fmin
+
 from matplotlib import cm, pyplot as plt, colorbar
 import scipy.io as spio
 import scipy.signal as spsignal
@@ -379,6 +381,7 @@ class Transient(object):
                         value = value_string
                     # create/assign attribute from imported parameter
                     setattr(self, key, value)
+        self.key_parameter_value = getattr(self, self.key_parameter)
 
         # ---------- get data ---------- using pandas! :)
 
@@ -816,10 +819,12 @@ class MultiTransients(object):
         self.update_key_parameter_list()
 
         # return sorted_list
+
     def update_key_parameter_list(self):
         self.key_parameter_list = []
         for transient in self.transients:
             self.key_parameter_list.append(getattr(transient, self.key_parameter))
+
     # %% analysis
 
     def filter_low_pass(self, cutHigh=0.1, order=2):
@@ -847,9 +852,9 @@ class MultiTransients(object):
 
     # %% plot
 
-    def quickplot(self):
+    def quickplot(self, figure=1):
         """ simple plot of a list of transients """  # todo: move to transients.py -> under multitransients()
-        fig = plt.figure(num=1)
+        fig = plt.figure(num=figure)
         plt.clf()
         ax = fig.add_subplot(111)
         ax.set_xlabel('Time [ps]', fontsize=18)
@@ -944,6 +949,88 @@ class MultiTransients(object):
         ax.set_zlabel(Zlabel, fontsize=20, labelpad=20)
         ax.set_title(title, fontsize=40)
         plt.show()
+
+    def fit_transients(self, fit_function, parameters, fit_from=0, fit_to=0, method='curve_fit', ext_plot=None,
+                       print_results=True, recursive_optimization=False, colorlist=None):
+        """
+            Fit given model to a series of Transients.
+        :param fit_function:
+            Model which will be fitted to the data
+        :param parameters: list, list of lists
+            Initial parameters for the given function
+        :param fit_from: int
+            Minimum  from which to perform fit.
+        :param fit_to: int
+            Maximum data point (x axis) from which to perform fit.
+        :param method: function
+            Fitting method used: supports 'curve_fit'
+        :param recursive_optimization: bool
+            If true, it uses the optimized fit from previous cycle to initialize the next fitting
+        :param ext_plot: bool
+            if true, plots the results in a matplotlib figure
+        :return: dict
+            collection of all optimized fit values in a dictionary with labels as keys. these are defined as "xx.x Unit"
+        """
+        if ext_plot is None:
+            fig = plt.figure('Fit of transients')
+            plt.clf()
+            ax = fig.add_subplot(111)
+            ax.set_xlabel('Time [ps]', fontsize=18)
+            ax.set_ylabel('Differential Reflectivity', fontsize=18)
+            ax.set_title(self.series_name, fontsize=26)
+            ax.tick_params(axis='x', labelsize=12)
+            ax.tick_params(axis='y', labelsize=12)
+        if colorlist is None:
+            colorlist_length = len(self.transients)
+            colorlist = plt.cm.rainbow(np.linspace(0, 1, colorlist_length))
+
+        else:
+            ax = ext_plot
+        color = iter(colorlist)
+
+
+        all_popt = {}
+        all_pcov = {}
+        last_popt = parameters
+        for i, transient in enumerate(self.transients):
+            xdata = transient.time[fit_from:-fit_to]
+            ydata = transient.trace[fit_from:-fit_to]
+            label = '{0} {1}'.format(transient.key_parameter_value, transient.get_unit(transient.key_parameter))
+
+            try:
+                if len(parameters[0]) > 1:
+                    guess = parameters[i]
+            except TypeError:
+                if recursive_optimization:
+                    guess=last_popt
+                else:
+                    guess = parameters
+
+            all_popt[label] = []
+            all_pcov[label] = []
+            if method == 'curve_fit':
+                try:
+                    popt, pcov = curve_fit(fit_function, xdata, ydata, p0=guess)
+                    if recursive_optimization:
+                        last_popt = popt
+                    if print_results:
+                        print('{0}: popt: {1}'.format(label, popt))
+
+                    col = next(color)
+                    ax.plot(xdata, fit_function(xdata, *popt), '--', c=col)
+                    ax.plot(xdata, ydata, c=col, label=label, alpha=0.5)
+                    all_popt[label] = popt
+                    all_pcov[label] = pcov
+
+                except RuntimeError:
+                    print('no fit parameters found for transient: {}'.format(label))
+            elif method == 'fmin':
+                print('fmin not yet implemented')  # todo: add support for fmin
+
+        if ext_plot:
+            pass
+            # plt.show()
+        return all_popt, all_pcov
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
+from scipy.optimize import curve_fit, fmin
 from matplotlib import cm
 
 from functionlibrary import genericfunctions as gfs
@@ -18,32 +19,104 @@ from functionlibrary.transient import Transient, MultiTransients
 
 
 def main():
+    plt.ioff()  # turn of the damn interactive mode that blocks everything!!
+
     # select files from folder:
     dir = 'C:/Users/sagustss/py_code/DATA/RuCl3/'
     dir_s = dir
-    file_list = gfs.choose_filenames(initialdir=dir)
+    # file_list = gfs.choose_filenames(initialdir=dir)
+    file_list = ('C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.8_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.32_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.5_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.5_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.5_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.5_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.5_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_10.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_12.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_14.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_16.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_18.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_20.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_22.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_24.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_26.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_28.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_30.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_35.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_40.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_45.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_50.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_55.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_60.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_65.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_70.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_80.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_90.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_100.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_150.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_200.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_250.0_K.txt',
+                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_300.0_K.txt')
+
+    print(file_list)
 
     data = MultiTransients(file_list)
     # data.import_files(file_list)
+    data.shift_time(-124.5)
+    print(data.series_name, '   ', data.key_parameter)
 
-    print(data.series_name,'   ',data.key_parameter)
+    # data.quickplot()
+    # plt.show()
+    #
 
-    data.quickplot()
+    ax0, ax1, ax2, colorlist = generate_threeplot_window(data.series_name, data.key_parameter, len(data.transients))
+
+    initial_values = [0.00005, 0.05, -1, -1]
+    popt, pcov = data.fit_transients(single_exponential_activation, initial_values, 750, 1, ext_plot=ax0,
+                                     colorlist=colorlist)
+    X = []
+    A = []
+    t = []
+    for key, value in popt.items():
+        temperature = float(key.split(' ')[0])
+        if temperature > 70:
+            pass
+        else:
+            X.append(temperature)
+            A.append(-value[0])
+            t.append(value[1])
+    color = iter(colorlist)
+
+    ax1.plot(X, t, 'o', c='b')
+    ax2.plot(X, A, 'o', c='r')
     plt.show()
+    ax1.set_xlim([0, 100])
+    ax2.set_xlim([0, 100])
+  #  ax1.set_xscale('log')
+  #  ax1.set_ylim([0, 0.002])
+#
 
-    print(data.key_parameter_list)
+# define fitting function
+def single_exponential_activation(x, A, t0, c, d):
+    return A * (1 - np.exp(- x / t0)) + c * x + d
 
+
+def double_exponential_pos_neg(x, A1, t1, A2, t2, c, d):
+    return A1 * (1 - np.exp(- x / t1)) - A2 * (1 - np.exp(- x / t2)) + c * x + d
 
 
 def print_series_parameters(transient_list):
-    print('{0:16} {1:5} {2:5}'.format(' ','Pump', 'Probe'))
-    print('{0:16}:{1:.3f} {2:.3f}'.format('Energy Density',transient_list[0].pump_energy, transient_list[0].probe_energy))
-    print('{0:16}:{1:.3f} {2:.3f}'.format('Power',transient_list[0].pump_power, transient_list[0].probe_power))
+    print('{0:16} {1:5} {2:5}'.format(' ', 'Pump', 'Probe'))
+    print('{0:16}:{1:.3f} {2:.3f}'.format('Energy Density', transient_list[0].pump_energy,
+                                          transient_list[0].probe_energy))
+    print('{0:16}:{1:.3f} {2:.3f}'.format('Power', transient_list[0].pump_power, transient_list[0].probe_power))
 
-
-# define fitting function
-def func(x, A, t0, c, d):
-    return A * np.exp(- x / t0) + c * x + d
 
 def quickplot_list(transient_list, title, dependence):
     """ simple plot of a list of transients """  # todo: move to transients.py -> under multitransients()
@@ -57,9 +130,9 @@ def quickplot_list(transient_list, title, dependence):
     ax.tick_params(axis='y', labelsize=12)
 
     # todo: make nice color iteration, that follows parameter value
-        # using gcd didnt work, or the function for it is buggy
+    # using gcd didnt work, or the function for it is buggy
     # colorlist_length, color_step = get_parameter_min_max_minstep(transient_list, dependence)
-    colorlist_length =  len(transient_list)
+    colorlist_length = len(transient_list)
     colorlist = cm.rainbow(np.linspace(0, 1, colorlist_length))
     color = iter(colorlist)
 
@@ -71,6 +144,7 @@ def quickplot_list(transient_list, title, dependence):
         col = next(color)
         ax.plot(xdata, ydata, c=col, label=str(curve.temperature) + 'K', alpha=0.5)
     return fig
+
 
 def get_parameter_min_max_minstep(transient_list, dependence):
     par_values = []
@@ -89,11 +163,13 @@ def get_parameter_min_max_minstep(transient_list, dependence):
     print(even_list_len)
     return even_list_len, step
 
+
 def gcd(a, b):
     if (b == 0):
         return a
     else:
         return gcd(b, a % b)
+
 
 def gcd_list(A):
     res = A[0]
@@ -101,11 +177,12 @@ def gcd_list(A):
         res = gcd(res, c)
     return res
 
+
 def get_data_from_files(file_list, key_parameter=None, description=None):
     temp_list = []
     transients_list = []
     for i, file in enumerate(file_list):
-        temp_list.append(tr.Transient(key_parameter=key_parameter,description=description))
+        temp_list.append(tr.Transient(key_parameter=key_parameter, description=description))
         temp_list[i].import_file(file)
         if len(temp_list[i].time) != 0:  # important to not create empty scans in the list of scans
             transients_list.append(temp_list[i])
@@ -113,11 +190,13 @@ def get_data_from_files(file_list, key_parameter=None, description=None):
 
     return transients_list
 
+
 def sort_scan_list_by_parameter(transients_list, parameter):
     sorted_list = sorted(transients_list, key=lambda transients_list: getattr(transients_list, parameter))
     return sorted_list
 
-def generate_threeplot_window(Title, dependence):
+
+def generate_threeplot_window(Title, dependence, colorlist_length):
     fig = plt.figure(Title, figsize=(19, 10))
     plt.clf()
     plt1 = fig.add_subplot(121)
@@ -138,10 +217,10 @@ def generate_threeplot_window(Title, dependence):
     plt3.set_title('Decay time vs Temperature', fontsize=26)
     plt3.tick_params(axis='x', labelsize=12)
     plt3.tick_params(axis='y', labelsize=12)
-    colorlist = cm.rainbow(np.linspace(0, 1, len(os.listdir(dataDir))))
-    color = iter(colorlist)
+    colorlist = cm.rainbow(np.linspace(0, 1, colorlist_length))
 
-    return (plt1, plt2, plt3, color)
+    return plt1, plt2, plt3, colorlist
+
 
 ########################################################################################################################
 ########################################################################################################################
@@ -318,9 +397,6 @@ def crap():
     for i in range(len(scn)):
         scn[i].export_file_csv(saveDir)
     fig.savefig(savename + '.png', format='png')
-
-
-
 
 
 if __name__ == '__main__':
