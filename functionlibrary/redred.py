@@ -16,6 +16,7 @@ import os
 
 
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 #other
 from datetime import datetime
 import re
@@ -128,6 +129,7 @@ class rrScan(object):
         self.probePol = 0       # Probe beam polarization [degg], 0 = 12o'clock, clockwise
         self.destrPol = 0       # Destruction beam polarization [degg], 0 = 12o'clock, clockwise
         self.sampleOrient = 0   # Sample orientation, 0 = 12o'clock
+        self.PDtime = 0         # time delay between Pump and Distruction pulses
         self.temperature = 0    # Temperature [K]
         self.R0 = 0             # Static reflectivity
 
@@ -156,6 +158,7 @@ class rrScan(object):
                              'R0' : ['R0', ''],
                              'filter' : ['Filter Frequency', 'NyqFreq Multiplier'],
                              'sampleOrient' : ['Sample Orientation', 'rad'],
+                             'PDtime' : ['Pump-Distr time', 'ps'],
                              'pumpPol' : ['Pump Polarization', 'rad'],
                              'probePol' : ['Probe Polarization', 'rad'],
                              'originalfilename' : ['Raw File Path', 'str'],
@@ -176,6 +179,7 @@ class rrScan(object):
                            'Pump polarization': [self.pumpPol,'deg'],
                            'Probe polarization': [self.probePol,'deg'],
                            'Sample Orientation': [self.sampleOrient,'deg'],
+                           'Pump-Distr time': [self.PDtime,'ps'],
                            'Probe Spot': [self.probeSp,'mum'],
                            'Temperature': [self.temperature,'K'],
                            'R0': [self.R0,'']
@@ -248,6 +252,7 @@ class rrScan(object):
         self.R0 = dict['R0']
         self.filter = dict['Filter Frequency']
         self.sampleOrient = dict['Sample Orientation']
+        self.PDtime = dict['time between Pump and Distruction']
         self.pumpPol = dict['Pump Polarization']
         self.probePol = dict['Probe Polarization']
         self.originalfilename = dict['Raw File Path']
@@ -332,6 +337,11 @@ class rrScan(object):
         if self.pumpPw != 0:
             self.trace = self.trace / self.pumpPw
         self.analysisHistory.append('normalized to PumpPw')
+        
+    def normalize(self, maximum=0):
+        if maximum == 0:
+            maximum=max(self.trace)
+        self.trace=self.trace/maximum
 
     def quickplot(self, xlabel='Time, ps',
                   ylabel='Kerr rotation', fntsize=20,
@@ -660,7 +670,7 @@ class rrScans(object):
         for item in self.filenames:
             ext = os.path.splitext(item)[-1].lower()
             if ext == ".mat":
-                if item != 't-cal.mat':
+                if os.path.basename(item) != 't-cal.mat':
                     filenamesout.append(item)
                 else: print(item + ' was dumped')
             lse: print(item + ' was dumped')
@@ -676,9 +686,10 @@ class rrScans(object):
 
     def definesampleorientforoldmokedata(self):
         for item in self.scans:
-            item.sampleOrient=float(item.originalfilename[item.originalfilename.find('rot-')+4:item.originalfilename.find('degree')])
-
-
+            try:
+                item.PDtime=float(item.originalfilename[item.originalfilename.find('t12-')+4:item.originalfilename.find('ps')])
+            except:
+                print('There is no such parametr')
 #%%functions applying redred functions to every scan in the list
 
     def filterit(self, cutHigh = 0.1, order = 2):
@@ -687,7 +698,7 @@ class rrScans(object):
 
     def removeDC(self):
         for item in self.scans:
-            item=item.remove_DC_offset()
+            item=item.removeDC()
 
     def fliptime(self):
         for item in self.scans:
@@ -731,7 +742,7 @@ class rrScans(object):
         Z=np.array(trace)
 
         fig = plt.figure(num=2)
-        ax = fig.add_subplot(111, projection='3d')
+        ax = Axes3D(fig)
         ax.plot_surface(X, Y, Z, rstride=1, cstride=100, cmap=colormap)
         ax.set_xlabel(Xlabel, fontsize=20, labelpad=20)
         ax.tick_params(axis='x', labelsize=20)
