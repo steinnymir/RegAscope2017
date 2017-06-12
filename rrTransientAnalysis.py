@@ -2,7 +2,7 @@
 """
 Created on Wed May  3 10:37:19 2017
 
-@author: sagustss
+@author: Steinn Ymir Agustsson
 """
 
 import os

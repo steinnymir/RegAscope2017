@@ -968,8 +968,10 @@ class MultiTransients(object):
             If true, it uses the optimized fit from previous cycle to initialize the next fitting
         :param ext_plot: bool
             if true, plots the results in a matplotlib figure
-        :return: dict
-            collection of all optimized fit values in a dictionary with labels as keys. these are defined as "xx.x Unit"
+        :return all_popt: dict
+            dictionary with transient label as key and fit optimized parameters as values
+        :return all_pcov: dict
+
         """
         if ext_plot is None:
             fig = plt.figure('Fit of transients')
@@ -1032,6 +1034,85 @@ class MultiTransients(object):
             # plt.show()
         return all_popt, all_pcov
 
+class Data(object):
+    """ This object stores data obtained from a fit such as decay times, amplitudes etc and provides analysis tools"""
+    def __init__(self,x,y,x_label,y_label):
+        """ initialization"""
+        self.x_data = x
+        self.y_data = y
+        self.x_data = np.array(self.xdata)
+        self.y_data = np.array(self.ydata)
+
+        self.x_label = x_label
+        self.y_label = y_label
+
+    def quickplot(self, fntsize=15, title='Dependence', clear=False, plt_handle=None, show=True):
+        """
+
+        :param title: str
+            window title
+        :param clear:
+            if true clears the figure before replotting
+        :param plt_handle:
+            handle to which to add the plot, used to plot in a pre-existant figure
+        :param show:
+            if true, uses plt.show()
+        :return:
+
+        """
+        if plt_handle is None:
+            fig = plt.figure(num=title)
+            ax = fig.add_subplot(111)
+        else:
+            ax = plt_handle
+
+        ax.scatter(self.x_data, self.y_data, 'o')
+        ax.set_xlabel(self.x_label, fontsize=15)
+        ax.set_ylabel(self.y_label, fontsize=15)
+        ax.set_title(title, fontsize=15)
+        ax.tick_params(axis='x', labelsize=15)
+        ax.tick_params(axis='y', labelsize=15)
+        if show:
+            plt.show()
+
+    def fit_data(self, fit_function, initial_parameters, x_range=(0, 0)):
+        """
+
+        :param function: func
+            function used for data fitting
+        :param initial_parameters: list
+            initial parameters for inizializing fitting procedure
+        :param x_range: [int,int]
+            limits to use for fitting [ start , stop ]
+        :param ydata: lsit or np.array
+            y_data, takes precedence over self.y_data
+        :return popt:
+            optimized parameters
+        :return pcov:
+        """
+        if x_range == (0,0):
+            x_range = (0,len(self.x_data))
+        x_data = self.x_data[x_range[0]:x_range[1]]
+        y_data = self.y_data
+        popt, pcov = curve_fit(fit_function, x_data, y_data, p0=initial_parameters)
+        return popt, pcov
+
+
+class FitFunction(object):
+    """ wrapper class for fit functions"""
+    def __init__(self):
+        """ """
+    @staticmethod()
+    def doubleExp_lin_const(x, A, t0, c, d):
+        return A * (1 - np.exp(- x / t0)) + c * x + d
+
+    @staticmethod()
+    def double_exponential_pos_neg(x, A1, t1, A2, t2, c, d):
+        return A1 * (1 - np.exp(- x / t1)) - A2 * (1 - np.exp(- x / t2)) + c * x + d
+
+    @staticmethod()
+    def expfunc(x, A, t0, c):
+        return A * np.exp(- x / t0) + c
 
 if __name__ == "__main__":
     main()
