@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
+from scipy.interpolate import interp1d
 
 #MData = scipy.io.loadmat('Mn2Au-MA70-20mW-10mW-RT-10kAVG')
 #Data = MData['Daten']
@@ -22,7 +23,7 @@ def import_redred(Filename):
     Data = MData['Daten']
     d=Data[0]
     shift=np.average(d[7460:7500:1])
-    trace=30*(-Data[0]+shift)/57
+    trace=30000*(-Data[0]+shift)/57
     #trace=-trace  #/trace.min(axis=0)
     Time = -Data[2] 
      #Data[2,np.argmin(-Data[0])]
@@ -73,8 +74,8 @@ for item in Names:
     PS.append(np.average(dt[5640:5692:1]))
     trace=data[1]
     time=data[0]+timeShift
-    Trace.append(trace[0:5777:1])
-    Time.append(time[0:5777:1])
+    Trace.append(trace)
+    Time.append(time)
     #plt.plot(time,trace)
     #fftredred(trace, time)
     #tr=import_redred(item)
@@ -83,7 +84,7 @@ for item in Names:
     #matplotlib.pyplot.plot(angle,A)
 X=np.array(Time)
 Angle=[]
-i=np.arange(0,5777,1)
+i=np.arange(0,7500,1)
 for item in i:
     Angle.append(angle)
 Y=np.transpose(np.array(Angle))
@@ -138,27 +139,36 @@ for item in i:
     krnorm=(kr-av)/zerro 
     crossect.append(krnorm)
 x=Time[0]
-y=angle[0:18:1]
+y=angle
 X1, Y1=np.meshgrid(x,y)
-Z1=np.transpose(np.array(crossect))
+Z1=np.array(Trace)
 fig4 = plt.figure(num=3)
 ax3 = fig4.add_subplot(111)
-ax4 = fig4.add_subplot(211)
-ax4.plot(Time[8],Trace[8])
+
 # Grab some test data.
 #X, Y, Z = axes3d.get_test_data(0.05)
 
 # Plot a basic wireframe.
-ax3.pcolor(X1, Y1, Z1, cmap='pink')
-#ax3.set_xlabel('Time(ps)', fontsize=20, labelpad=20)
-#ax3.tick_params(axis='x', labelsize=20)
-#ax3.tick_params(axis='y', labelsize=20)
-#ax3.tick_params(axis='z', labelsize=20)
+Zmin=-5
+Zmax=15
+
+fint = interp1d(y, Z1.T, kind='slinear')
+ynew=np.arange(0,360,1)
+Z1new = fint(ynew).T
+X1new, Y1new=np.meshgrid(x,ynew)
+
+cax =ax3.pcolormesh(X1new,Y1new,Z1new,vmin=Zmin,vmax=Zmax,  cmap='viridis')
+ax3.set_xlabel('Time(ps)', fontsize=40)
+ax3.tick_params(labelsize=40)
 
 
-#ax3.set_ylabel('Angle (degrees)', fontsize=20, labelpad=20)
-#ax3.set_zlabel('Kerr rotation (mrad)', fontsize=20, labelpad=20)
-#ax3.set_title(' vertical Probe, horizontal Pump', fontsize=40)
+cbar=fig4.colorbar(cax)
+cbar.set_label('Probe polarization rotation ($\mu$rad)',size=40)
+cbar.ax.tick_params(labelsize=40)
+ax3.set_ylabel(r'$\alpha$ (degrees)', fontsize=40, labelpad=20)
+
+
+
 plt.show()    
 
 
