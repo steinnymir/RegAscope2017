@@ -1,50 +1,67 @@
 import numpy
 import cv2
-from PyQt5 import QtGui as qg
-from PyQt5 import QtWidgets as qw
-from PyQt5 import QtCore as qc
+from PyQt5 import QtGui as qg, QtWidgets as qw, QtCore as qc, uic
+import pyqtgraph as pg
+from PIL import Image
 
 import sys
 
-class CamView(qw.QWidget):
+def main():
+    app = qw.QApplication(sys.argv)
+    w = CamView()
+    w.resize(600, 400)
+    w.show()
+    app.exec_()
+
+def main_():
+    show_webcam()
+
+
+class CamView(qw.QMainWindow):
+    CAMERA = 0
+
     def __init__(self):
         super().__init__()
-        self.title = 'the GUI test'
-        self.left = 300
-        self.top = 100
-        self.width = 1400
-        self.height = 900
-        self.initUI()
+
+        uic.loadUi('cam_gui.ui', self)
+        self.cam = cv2.VideoCapture(self.CAMERA)
+
+    def run_video(self):
+
+        vid = cv2.VideoCapture(self.CAMERA)
+        ret, frame = vid.read()
+        while ret:
+            # Qimg = convert(frame)
+            self.label.setpixmap(Qimg)
+            self.label.update()
+            ret, frame = vid.read()
+            qw.QApplication.processEvents()
 
 
-    def initUI(self):
-        """ Generate GUI layout """
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
-
-        self.makeLayout()
-        self.show()
-
-    def makeLayout(self):
-        layout = qg.QGridLayout()  # create a grid for subWidgets
-        layout.setSpacing(10)
-        self.setLayout(layout)
-
-        font = qg.QFont()
-        font.setBold(True)
-        font.setPixelSize(15)
-
-        #self.videoScreen = pg.  # todo: gui based webcam viewer
+        # vb = pg.ViewBox()
+        # self.graphicsView.setCentralItem(vb)
+        # vb.setAspectLocked()
+        # img = pg.ImageItem()
+        # vb.addItem(img)
+        # vb.setRange(qc.QRectF(0, 0, 512, 512))
 
 def plot_image():
     cam = cv2.VideoCapture(0)
     # print(type(cam.read()))
     ret_val, img = cam.read()
 
+def show_webcam():
+    cam = cv2.VideoCapture(1)
+    while True:
+        ret_val, img = cam.read()
+
+        print(ret_val)
+        cv2.imshow('logitech webcam', img)
+        if cv2.waitKey(1) == 27:
+            break
+
+
 
 if __name__=="__main__":
-    app = qw.QApplication(sys.argv)
-    w = CamView()
-    w.resize(600, 400)
-    w.show()
-    app.exec_()
+
+    main()

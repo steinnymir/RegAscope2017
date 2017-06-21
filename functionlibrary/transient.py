@@ -951,12 +951,12 @@ class MultiTransients(object):
         plt.show()
 
     def fit_transients(self, fit_function, parameters, fit_from=0, fit_to=0, method='curve_fit', ext_plot=None,
-                       print_results=True, recursive_optimization=False, colorlist=None):
+                       print_results=True, recursive_optimization=False, colorlist=None, saveDir=None):
         """
             Fit given model to a series of Transients.
         :param fit_function:
             Model which will be fitted to the data
-        :param parameters: list, list of lists
+        :param parameters: list, (list of lists - no longer supported)
             Initial parameters for the given function
         :param fit_from: int
             Minimum  from which to perform fit.
@@ -968,6 +968,8 @@ class MultiTransients(object):
             If true, it uses the optimized fit from previous cycle to initialize the next fitting
         :param ext_plot: bool
             if true, plots the results in a matplotlib figure
+        :param print_results: bool
+            if true prints fitting results in console while being obtained.
         :return all_popt: dict
             dictionary with transient label as key and fit optimized parameters as values
         :return all_pcov: dict
@@ -985,18 +987,30 @@ class MultiTransients(object):
         if colorlist is None:
             colorlist_length = len(self.transients)
             colorlist = plt.cm.rainbow(np.linspace(0, 1, colorlist_length))
-
         else:
             ax = ext_plot
+
         color = iter(colorlist)
 
-
-        all_popt = {}
+        all_popt = {}  # dict type output
         all_pcov = {}
+
+        key_parameter_values = []
+        fit_parameters_data = {}  # dict of Data type output
+        try:
+            if len(parameters[0]) > 1:
+                pars = parameters[0]
+        except TypeError:
+            pars = parameters
+        for i, fit_parameter in enumerate(pars):
+            fit_parameters_data['par{}'.format(i)] = []
+
         last_popt = parameters
         for i, transient in enumerate(self.transients):
             xdata = transient.time[fit_from:-fit_to]
             ydata = transient.trace[fit_from:-fit_to]
+            key_parameter_values.append(transient.key_parameter_value)
+            key_parameter = transient.key_parameter
             label = '{0} {1}'.format(transient.key_parameter_value, transient.get_unit(transient.key_parameter))
 
             try:
@@ -1004,12 +1018,13 @@ class MultiTransients(object):
                     guess = parameters[i]
             except TypeError:
                 if recursive_optimization:
-                    guess=last_popt
+                    guess = last_popt
                 else:
                     guess = parameters
 
             all_popt[label] = []
             all_pcov[label] = []
+
             if method == 'curve_fit':
                 try:
                     popt, pcov = curve_fit(fit_function, xdata, ydata, p0=guess)
@@ -1021,27 +1036,39 @@ class MultiTransients(object):
                     col = next(color)
                     ax.plot(xdata, fit_function(xdata, *popt), '--', c=col)
                     ax.plot(xdata, ydata, c=col, label=label, alpha=0.5)
+
                     all_popt[label] = popt
                     all_pcov[label] = pcov
+
+                    for i, item in enumerate(popt):
+                        fit_parameters_data['par{}'.format(i)].append(item)
 
                 except RuntimeError:
                     print('no fit parameters found for transient: {}'.format(label))
             elif method == 'fmin':
                 print('fmin not yet implemented')  # todo: add support for fmin
 
+        for key, value in fit_parameters_data.items():
+            fit_parameters_data[key] = Data(key_parameter_values, value, key_parameter, key)
+
         if ext_plot:
             pass
             # plt.show()
-        return all_popt, all_pcov
+
+        if saveDir is not None:
+            pass
+        return all_popt, all_pcov, fit_parameters_data
+
 
 class Data(object):
     """ This object stores data obtained from a fit such as decay times, amplitudes etc and provides analysis tools"""
-    def __init__(self,x,y,x_label,y_label):
+
+    def __init__(self, x, y, x_label, y_label):
         """ initialization"""
         self.x_data = x
         self.y_data = y
-        self.x_data = np.array(self.xdata)
-        self.y_data = np.array(self.ydata)
+        self.x_data = np.array(self.x_data)
+        self.y_data = np.array(self.y_data)
 
         self.x_label = x_label
         self.y_label = y_label
@@ -1066,7 +1093,7 @@ class Data(object):
         else:
             ax = plt_handle
 
-        ax.scatter(self.x_data, self.y_data, 'o')
+        ax.scatter(self.x_data, self.y_data)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
         ax.set_title(title, fontsize=15)
@@ -1090,8 +1117,9 @@ class Data(object):
             optimized parameters
         :return pcov:
         """
-        if x_range == (0,0):
-            x_range = (0,len(self.x_data))
+
+        if x_range == (0, 0):
+            x_range = (0, len(self.x_data))
         x_data = self.x_data[x_range[0]:x_range[1]]
         y_data = self.y_data
         popt, pcov = curve_fit(fit_function, x_data, y_data, p0=initial_parameters)
@@ -1100,19 +1128,28 @@ class Data(object):
 
 class FitFunction(object):
     """ wrapper class for fit functions"""
+
     def __init__(self):
         """ """
-    @staticmethod()
-    def doubleExp_lin_const(x, A, t0, c, d):
-        return A * (1 - np.exp(- x / t0)) + c * x + d
 
-    @staticmethod()
+    @staticmethod
     def double_exponential_pos_neg(x, A1, t1, A2, t2, c, d):
-        return A1 * (1 - np.exp(- x / t1)) - A2 * (1 - np.exp(- x / t2)) + c * x + d
+        labels = ['A1', 't1', 'A2', 't2', 'c', 'd']
+        func = A1 * (1 - np.exp(- x / t1)) - A2 * (1 - np.exp(- x / t2)) + c * x + d
+        return func, labels
 
-    @staticmethod()
-    def expfunc(x, A, t0, c):
-        return A * np.exp(- x / t0) + c
+    @staticmethod
+    def expfunc_const(x, A, t0, c):
+        labels = ['A', 't0', 'c']
+        func = A * (1 - np.exp(- x / t0)) + c
+        return func, labels
+
+    @staticmethod
+    def expFunc_lin_const(x, A, t0, c, d):
+        labels = ['A', 't0', 'c', 'd']
+        func = A * (1 - np.exp(- x / t0)) + c * x + d
+        return func, labels
+
 
 if __name__ == "__main__":
     main()

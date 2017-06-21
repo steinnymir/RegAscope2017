@@ -78,8 +78,23 @@ def main():
     ax0, ax1, ax2, colorlist = generate_threeplot_window(data.series_name, data.key_parameter, len(data.transients))
 
     initial_values = [0.00005, 0.05, -1, -1]
-    popt, pcov = data.fit_transients(single_exponential_activation, initial_values, 750, 1, ext_plot=ax0,
-                                     colorlist=colorlist)
+    popt, pcov, fit_data = data.fit_transients(single_exponential_activation, initial_values, 750, 1, ext_plot=ax0, colorlist=colorlist)
+
+
+    print(fit_data.keys())
+    i=0
+    for key, item in fit_data.items():
+
+        fig = plt.figure(key)
+
+        ax = fig.add_subplot(111)
+
+        i += 1
+        item.quickplot(plt_handle=ax, show=False)
+
+
+
+
     X = []
     A = []
     t = []
@@ -100,7 +115,7 @@ def main():
     ax2.set_xlim([0, 100])
   #  ax1.set_xscale('log')
   #  ax1.set_ylim([0, 0.002])
-#
+
 
 # define fitting function
 def single_exponential_activation(x, A, t0, c, d):
@@ -108,7 +123,7 @@ def single_exponential_activation(x, A, t0, c, d):
 
 
 def double_exponential_pos_neg(x, A1, t1, A2, t2, c, d):
-    return A1 * (1 - np.exp(- x / t1)) - A2 * (1 - np.exp(- x / t2)) + c * x + d
+    return A1 * (1 - np.exp(- x / t1)) + A2 * (1 - np.exp(- x / t2)) + c * x + d
 
 
 def print_series_parameters(transient_list):
