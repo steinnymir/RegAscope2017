@@ -1073,7 +1073,7 @@ class Data(object):
         self.x_label = x_label
         self.y_label = y_label
 
-    def quickplot(self, fntsize=15, title='Dependence', clear=False, plt_handle=None, show=True):
+    def quickplot(self, title='Dependence', clear=False, plt_handle=None, show=True, *args, **kargs):
         """
 
         :param title: str
@@ -1093,7 +1093,7 @@ class Data(object):
         else:
             ax = plt_handle
 
-        ax.scatter(self.x_data, self.y_data)
+        ax.scatter(self.x_data, self.y_data, *args, **kargs)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
         ax.set_title(title, fontsize=15)

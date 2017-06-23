@@ -45,6 +45,7 @@ class MainWindow(QW.QMainWindow):
         layout.setSpacing(10)
         self.setLayout(layout)
 
+
         self.centralWidget = TransientAnalysisWidget()
         layout.addWidget(self.centralWidget, 0, 0)
         self.setCentralWidget(self.centralWidget)

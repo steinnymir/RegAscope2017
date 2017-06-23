@@ -86,12 +86,9 @@ def main():
     for key, item in fit_data.items():
 
         fig = plt.figure(key)
-
         ax = fig.add_subplot(111)
-
         i += 1
         item.quickplot(plt_handle=ax, show=False)
-
 
 
 
@@ -99,6 +96,7 @@ def main():
     A = []
     t = []
     for key, value in popt.items():
+
         temperature = float(key.split(' ')[0])
         if temperature > 70:
             pass
@@ -110,6 +108,10 @@ def main():
 
     ax1.plot(X, t, 'o', c='b')
     ax2.plot(X, A, 'o', c='r')
+
+
+    # .quickplot(plt_handle=ax, show=False, 'o', c='b')
+    # item.quickplot(plt_handle=ax, show=False, 'o', c='b')
     plt.show()
     ax1.set_xlim([0, 100])
     ax2.set_xlim([0, 100])
@@ -222,14 +224,15 @@ def generate_threeplot_window(Title, dependence, colorlist_length):
     plt1.set_title('Fitted Scans', fontsize=26)
     plt1.tick_params(axis='x', labelsize=12)
     plt1.tick_params(axis='y', labelsize=12)
-    plt2.set_xlabel(dependence, fontsize=18)
+    plt2.set_xlabel('Temperature [K]', fontsize=18)
     plt2.set_ylabel('Decay Time [ps]', fontsize=18)
-    plt2.set_title('Decay time vs Temperature', fontsize=26)
+    plt2.set_title('Fit Parameters as function of Temperature', fontsize=20)
     plt2.tick_params(axis='x', labelsize=12)
     plt2.tick_params(axis='y', labelsize=12)
     plt3.set_xlabel('Temperature [K]', fontsize=18)
     plt3.set_ylabel('Amplitude', fontsize=18)
-    plt3.set_title('Decay time vs Temperature', fontsize=26)
+    # plt3.set_title('Amplitude vs Temperature', fontsize=20)
+
     plt3.tick_params(axis='x', labelsize=12)
     plt3.tick_params(axis='y', labelsize=12)
     colorlist = cm.rainbow(np.linspace(0, 1, colorlist_length))
