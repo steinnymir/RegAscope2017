@@ -1126,6 +1126,8 @@ class Data(object):
         return popt, pcov
 
 
+
+
 class FitFunction(object):
     """ wrapper class for fit functions"""
 

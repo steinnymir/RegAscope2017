@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 from scipy.optimize import curve_fit, fmin
-from matplotlib import cm
+from matplotlib import cm, colorbar
 
 from functionlibrary import genericfunctions as gfs
 from functionlibrary import redred as rr
@@ -24,45 +24,45 @@ def main():
     # select files from folder:
     dir = 'C:/Users/sagustss/py_code/DATA/RuCl3/'
     dir_s = dir
-    # file_list = gfs.choose_filenames(initialdir=dir)
-    file_list = ('C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.8_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.32_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.5_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.5_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.5_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.5_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.5_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_10.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_12.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_14.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_16.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_18.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_20.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_22.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_24.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_26.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_28.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_30.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_35.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_40.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_45.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_50.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_55.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_60.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_65.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_70.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_80.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_90.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_100.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_150.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_200.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_250.0_K.txt',
-                 'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_300.0_K.txt')
+    file_list = gfs.choose_filenames(initialdir=dir)
+    # file_list = ('C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.8_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_4.32_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_5.5_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_6.5_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_7.5_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_8.5_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_9.5_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_10.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_12.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_14.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_16.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_18.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_20.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_22.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_24.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_26.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_28.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_30.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_35.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_40.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_45.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_50.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_55.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_60.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_65.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_70.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_80.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_90.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_100.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_150.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_200.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_250.0_K.txt',
+    #              'C:/data/RuCl3/Low Fluence_temperature/RuCl3_LowFluence_300.0_K.txt')
 
     print(file_list)
 
@@ -77,8 +77,20 @@ def main():
 
     ax0, ax1, ax2, colorlist = generate_threeplot_window(data.series_name, data.key_parameter, len(data.transients))
 
+    fig = plt.figure(num=23423, figsize=(16, 12), dpi=80)
+    fig.set_figwidth(1024)
+    fig.set_figheight(768)
+    plt.clf()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Time [ps]', fontsize=18)
+    ax.set_ylabel('Differential Reflectivity', fontsize=18)
+    ax.set_title('Fitted Scans', fontsize=26)
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+
     initial_values = [0.00005, 0.05, -1, -1]
-    popt, pcov, fit_data = data.fit_transients(single_exponential_activation, initial_values, 750, 1, ext_plot=ax0, colorlist=colorlist)
+
+    popt, pcov, fit_data = data.fit_transients(single_exponential_activation, initial_values, 750, 1, ext_plot=ax, colorlist=colorlist)
 
 
     print(fit_data.keys())
@@ -89,32 +101,33 @@ def main():
         ax = fig.add_subplot(111)
         i += 1
         item.quickplot(plt_handle=ax, show=False)
+    print(data.transients[0].pump_energy)
 
+    #
+    # X = []
+    # A = []
+    # t = []
+    # for key, value in popt.items():
+    #
+    #     temperature = float(key.split(' ')[0])
+    #     if temperature > 70:
+    #         pass
+    #     else:
+    #         X.append(temperature)
+    #         A.append(-value[0])
+    #         t.append(value[1])
+    # # color = iter(colorlist)
 
-
-    X = []
-    A = []
-    t = []
-    for key, value in popt.items():
-
-        temperature = float(key.split(' ')[0])
-        if temperature > 70:
-            pass
-        else:
-            X.append(temperature)
-            A.append(-value[0])
-            t.append(value[1])
-    color = iter(colorlist)
-
-    ax1.plot(X, t, 'o', c='b')
-    ax2.plot(X, A, 'o', c='r')
+    # ax1.plot(X, t, 'o', c='b')
+    # ax2.plot(X, A, 'o', c='r')
 
 
     # .quickplot(plt_handle=ax, show=False, 'o', c='b')
     # item.quickplot(plt_handle=ax, show=False, 'o', c='b')
+
     plt.show()
-    ax1.set_xlim([0, 100])
-    ax2.set_xlim([0, 100])
+    # ax1.set_xlim([0, 100])
+    # ax2.set_xlim([0, 100])
   #  ax1.set_xscale('log')
   #  ax1.set_ylim([0, 0.002])
 
@@ -419,11 +432,3 @@ def crap():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-    # print('exited')
-    # guess = [0.0005, 0.1, -1, -1]
-    # fitparameters = []
