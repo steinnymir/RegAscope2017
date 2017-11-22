@@ -11,7 +11,7 @@ from PyQt5 import QtCore as qc
 import sys
 import pyqtgraph as pg
 import numpy as np
-from functionlibrary import redred as rr
+from lib import redred as rr
 import qdarkstyle
 import os
 from GUI import rrWidgets

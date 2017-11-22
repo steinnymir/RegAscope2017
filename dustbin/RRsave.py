@@ -5,7 +5,7 @@ Created on Fri Apr 28 15:25:46 2017
 @author: sagustss
 """
 
-from functionlibrary import redred as rr
+from lib import redred as rr
 import os
 import tkinter as tk
 from tkinter import filedialog

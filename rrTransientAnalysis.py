@@ -13,9 +13,9 @@ import scipy
 from scipy.optimize import curve_fit, fmin
 from matplotlib import cm, colorbar
 
-from functionlibrary import genericfunctions as gfs
-from functionlibrary import redred as rr
-from functionlibrary.transient import Transient, MultiTransients
+from lib import genericfunctions as gfs
+from lib import redred as rr
+from lib.transient import Transient, MultiTransients
 
 
 def main():

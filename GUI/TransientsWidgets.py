@@ -11,7 +11,7 @@ from PyQt5 import QtCore as QC
 import sys
 import pyqtgraph as pg
 import numpy as np
-from functionlibrary import transient as tr
+from lib import transient as tr
 import qdarkstyle
 import os
 

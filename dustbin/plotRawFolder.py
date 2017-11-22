@@ -5,7 +5,7 @@ Created on Wed May  3 10:37:19 2017
 @author: sagustss
 """
 
-from functionlibrary import redred as rr
+from lib import redred as rr
 import os
 import numpy as np
 import scipy
