@@ -261,7 +261,7 @@ class Transient(object):
             - trace
             - time
             - energy
-            - tempeature
+            - temperature
             parameter:type parameter: str
             """
         splitpar = parameter.split('_')
