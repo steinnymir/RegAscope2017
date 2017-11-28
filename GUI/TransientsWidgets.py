@@ -66,7 +66,7 @@ class TransientAnalysisWidget(QW.QWidget):
         #        self.height = 900
         self.initUI()
 
-        self.data = tr.TransientsSet()
+        self.data = tr.MultiTransients()
         self.data_memory = {}
 
     def initUI(self):
@@ -456,5 +456,5 @@ if __name__ == '__main__':
     pg.setConfigOption('background', 0.1)
     pg.setConfigOption('foreground', 0.7)
     prg.show()
-        app.exec_()
+    app.exec_()
 

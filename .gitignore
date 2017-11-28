@@ -3,3 +3,6 @@
 
 \.idea/
 settings.ini
+lib/__pycache__/
+
+functionlibrary/__pycache__/
