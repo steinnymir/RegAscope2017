@@ -284,7 +284,7 @@ class Transient(object):
 
     # %% import export
 
-    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None):
+    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None, silent=True):
         """Imports a file, csv or .mat
         uses self.import_file_mat() and self.import_file_csv,
         depending on file extension"""
@@ -308,7 +308,8 @@ class Transient(object):
             if description is not None:
                 self.description = description
             self.give_name()
-            print('Imported {0} as {1}'.format(basename, self.name))
+            if not silent:
+                print('Imported {0} as {1}'.format(basename, self.name))
             if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
 
