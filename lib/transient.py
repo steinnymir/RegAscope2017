@@ -65,15 +65,6 @@ class Transient(object):
 
         self.time = np.array([])  # cleaned time axis
         self.trace = np.array([])  # cleaned and modified data trace
-        self.description = description
-        self.key_parameter = key_parameter
-        if self.key_parameter is not None:
-            self.key_parameter_value = getattr(self, self.key_parameter)
-        else:
-            self.key_parameter_value = None
-        self.series_name = series_name
-        # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
-        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES')
 
         ######################################
         #              Metadata              #
@@ -126,6 +117,17 @@ class Transient(object):
         ######################################
         #             input info             #
         ######################################
+
+
+        self.description = description
+        self.key_parameter = key_parameter
+        if self.key_parameter is not None:
+            self.key_parameter_value = getattr(self, self.key_parameter)
+        else:
+            self.key_parameter_value = None
+        self.series_name = series_name
+        # ignore list for metadata export. Add here any further non-metadata attributes created in this class.
+        self.DATA_ATTRIBUTES = ('raw_time', 'raw_trace', 'time', 'trace', 'DATA_ATTRIBUTES')
 
     # %% metadata management
     def key_parameter_value(self):
@@ -181,8 +183,7 @@ class Transient(object):
         """
         Generate log entry for analysis_log.
             creates a key with given key in analysis_log, making it:
-                - boolean if no other args or kargs are given, flips previous
-                values written in log
+                - boolean if no other args or kargs are given, flips previous values written in log
                 - list if *args are passed
                 - dictionary if **kargs are passed
             if overwrite is False, it appends values on previous logs,
@@ -284,10 +285,24 @@ class Transient(object):
 
     # %% import export
 
-    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None, silent=True):
-        """Imports a file, csv or .mat
-        uses self.import_file_mat() and self.import_file_csv,
-        depending on file extension"""
+    def import_file(self, filepath, cleanData=True, key_parameter=None, description=None, silent=True, **kwargs):
+        """
+        Imports a file, .mat or .csv, using self.import_file_mat() and self.import_file_csv methods respectively.
+        :param filepath
+            path to file
+        :param cleanData:
+            run the cleanData method, including fltering, baseline removal, setting timezero and others.
+        :param key_parameter
+            sets the key parameter
+        :param description
+            brief description of this transient, for file naming
+        :param silent
+            if true, doesnt print anything, set to False for debugging
+        :param **kwargs
+            all keyord args passed are set as attributes of this class instance. (use to overwrite parameters.
+
+
+        """
 
         try:  # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
@@ -308,10 +323,16 @@ class Transient(object):
             if description is not None:
                 self.description = description
             self.give_name()
+
+            for attr,val in kwargs:
+                setattr(self,attr,val)
+
             if not silent:
                 print('Imported {0} as {1}'.format(basename, self.name))
             if cleanData and len(self.raw_time) != 0:
                 self.clean_data()
+        except TypeError as err:
+            print(err)
 
         except FileNotFoundError:
             print('File ' + filepath + ' not found')
@@ -338,7 +359,7 @@ class Transient(object):
                     print('invalid key: ' + key)
 
         except KeyError:
-            print(filepath + ' is not a valid redred scan datafile')
+            raise TypeError(filepath + ' is not a valid matlab scan datafile. As created by redred setup.')
 
     def import_file_csv(self, filepath):
         """
@@ -576,6 +597,7 @@ class Transient(object):
             print('Normalization failed: invalid parameter name')
         logkey = 'Normalized by ' + parameter.replace('_', ' ')
         self.log_it(logkey)
+
 
     def quickplot(self, xlabel='Time [ps]', ylabel='Trace', fntsize=15, title='Transient', clear=False, raw=False):
         """Generates a quick simple plot with matplotlib """
