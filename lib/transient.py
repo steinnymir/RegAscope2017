@@ -19,10 +19,11 @@ import pandas
 
 
 def main():
-    files = os.listdir('E:/data/RuCl3/Low Fluence_temperature')
+    files = os.listdir('E:/steinn/new data/2017-11-28/')
     filepaths = []
     for name in files:
-        filepaths.append('E:/data/RuCl3/Low Fluence_temperature/' + name)
+        filepaths.append('E:/steinn/new data/2017-11-28/' + name)
+
 
     series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence',
                              key_parameter='temperature')
