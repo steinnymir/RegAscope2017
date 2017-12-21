@@ -111,10 +111,6 @@ class Transient(object):
         self.fit_function = None
         self.fit_parameters = None
 
-
-
-
-
         ######################################
         #             input info             #
         ######################################
