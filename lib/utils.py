@@ -150,8 +150,7 @@ class class_attributes_string(object):
 
 
 def get_metadata_from_name(filepath):  # todo: this is shit! remake it...
-    ''' Interprets name of file and returns a dictionary
-    with all contained metadata.
+    ''' Interprets name of file and returns a dictionary with all contained metadata.
     It requires a name with elements separated by ['-', '_', ',', ' '].
     Example: RuCl3_pu_15.0mW_pr_5.0mW_t_4.5K.mat
              RuCl3-pu-15.0mW-pr-5.0mW-t-4.5K.mat

@@ -5,28 +5,31 @@ Created on Mon May 15 09:57:29 2017
 @author: S.Y. Agustsson
 """
 
-from lib import genericfunctions as gfs
-import numpy as np
-import scipy as sp
-from scipy.optimize import curve_fit, fmin
-
-from matplotlib import cm, pyplot as plt, colorbar
-import scipy.io as spio
-import scipy.signal as spsignal
 import os
 import re
-import pandas
+
+import numpy as np
+import pandas as pd
+import scipy.io as spio
+import scipy.signal as spsignal
+from matplotlib import cm, pyplot as plt
+from scipy.optimize import curve_fit
+
+from lib import utils
 
 
 def main():
-    files = os.listdir('E:/steinn/new data/2017-11-28/')
+    path = 'E:/data/RuCl3/mat/kerr_rotation/fluence_3.8K/'
+    series_name = 'Kerr - 4K fluence dependence'
+    key_parameter = 'pump_power'
+
+    files = os.listdir(path)
     filepaths = []
     for name in files:
-        filepaths.append('E:/steinn/new data/2017-11-28/' + name)
+        filepaths.append(path + name)
 
+    series = MultiTransients(transients_list=filepaths, series_name=series_name, key_parameter=key_parameter)
 
-    series = MultiTransients(transients_list=filepaths, series_name='Low Fluence - temperature dependence',
-                             key_parameter='temperature')
     print(series.key_parameter)
     series.quickplot()
 
@@ -148,7 +151,7 @@ class Transient(object):
                 spot = getattr(self, (beam + '_spot'))
                 if beam == 'pump':
                     rep_rate = rep_rate / 2  # pump has half reprate (darkcontrol)
-                energy = round(gfs.get_energy_density(spot, power, rep_rate), 3)
+                energy = round(utils.get_energy_density(spot, power, rep_rate), 3)
                 print(energy)
                 setattr(self, (beam + '_energy'), energy)
 
@@ -298,18 +301,21 @@ class Transient(object):
         :param **kwargs
             all keyord args passed are set as attributes of this class instance. (use to overwrite parameters.
 
-
         """
 
         try:  # if it finds the file requested...
             ext = os.path.splitext(filepath)[-1].lower()
             basename = os.path.basename(filepath)
             if ext == '.mat':
-                if basename.lower() != 't-cal.mat':
+                try:
                     self.import_file_mat(filepath)
-                else:
-                    print('Ignored t-cal.mat')
-
+                except TypeError:
+                    print('Ignored incorrect matlab file: {}'.format(filepath))
+                #
+                # if basename.lower() != 't-cal.mat':
+                #     self.import_file_mat(filepath)
+                # else:
+                #     print('Ignored t-cal.mat')
             elif ext == '.txt':
                 self.import_file_csv(filepath)
             else:
@@ -347,7 +353,7 @@ class Transient(object):
 
             self.R0 = data['DC'][0][0]
             # get all metadata from name
-            metadataDict = gfs.get_metadata_from_name(filepath)  # todo: add eventual non scripted parameters
+            metadataDict = utils.get_metadata_from_name(filepath)  # todo: add eventual non scripted parameters
             # write metadata to relative attributes
             for key in metadataDict:
                 try:
@@ -404,7 +410,7 @@ class Transient(object):
 
         # ---------- get data ---------- using pandas! :)
 
-        data = pandas.read_csv(filepath, names=columnHeaders, skiprows=dataOffset)
+        data = pd.read_csv(filepath, names=columnHeaders, skiprows=dataOffset)
         for col in data.columns:
             # make a list of float tipe data for each dataset found
             col_data = getattr(data, col).astype(float).tolist()
@@ -566,8 +572,7 @@ class Transient(object):
         self.trace = self.trace - shift
         self.log_it('Remove DC', window=window, shift=shift)
 
-    def filter_low_pass(self, cutHigh=0.1, order=1,
-                        return_frequency=False):  # todo: add different methods between which to choose
+    def filter_low_pass(self, cutHigh=0.1, order=1, return_frequency=False):  # todo: add different methods between which to choose
         """ apply simple low pass filter to data. if return_frequency is True, returns the filter frequency value
         in THz ( if time data is in ps)
 
@@ -580,7 +585,7 @@ class Transient(object):
 
         b, a = spsignal.butter(order, cutHigh, 'low', analog=False)
         self.trace = spsignal.filtfilt(b, a, self.trace, method='gust')
-        frequency = gfs.get_nyquist_frequency(self.time) * cutHigh
+        frequency = utils.get_nyquist_frequency(self.time) * cutHigh
         self.log_it('Low Pass Filter', frequency=frequency, nyq_factor=cutHigh, order=order)
         if return_frequency:
             return frequency
@@ -617,7 +622,7 @@ class Transient(object):
 class MultiTransients(object):
     """ list of transients corresponding to a certain dependence series"""
 
-    datadir = 'C:/Users/sagustss/py_code/DATA'
+    datadir = 'E:/DATA_temp'
 
     def __init__(self, transients_list=None, series_name=None, description=None, key_parameter=None):
         """
@@ -797,7 +802,7 @@ class MultiTransients(object):
     def saveas_csv(self, directory=None):  # todo: implement dynamic paramter choosing option
         """ creates a directory inside the given directory where it will save all data in csv format."""
         if directory is None:
-            directory = gfs.choose_folder('C:/Users/sagustss/py_code/DATA')
+            directory = utils.choose_folder('C:/Users/sagustss/py_code/DATA')
         save_dir = directory + '/' + self.series_name + '_' + self.key_parameter + '/'
         if os.path.exists(save_dir):
             n = 1
@@ -1144,8 +1149,6 @@ class Data(object):
         y_data = self.y_data
         popt, pcov = curve_fit(fit_function, x_data, y_data, p0=initial_parameters)
         return popt, pcov
-
-
 
 
 class FitFunction(object):

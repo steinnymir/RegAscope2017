@@ -13,7 +13,7 @@ import scipy
 from scipy.optimize import curve_fit, fmin
 from matplotlib import cm, colorbar
 
-from lib import genericfunctions as gfs
+from lib import utils as gfs
 from lib import redred as rr
 from lib.transient import Transient, MultiTransients
 
