@@ -241,7 +241,7 @@ class Transient(object):
                 self.analysis_log[keyword] = entry
 
     def give_name(self):
-        """Define name attribute as material_date."""
+        """Define name attribute"""
 
         if self.key_parameter is None:
             self.key_parameter = input('What is the Key parameter for basename?  ')
@@ -345,7 +345,7 @@ class Transient(object):
         extracts data about raw_time raw_trace and R0.
 
         """
-        self.original_filepath = filepath
+        self.original_filepath = filepath.split('/')[-1]
         data = spio.loadmat(filepath)
         try:  # if it finds the right data structure
             self.raw_time = data['Daten'][2]
