@@ -118,7 +118,6 @@ class Transient(object):
         #             input info             #
         ######################################
 
-
         self.description = description
         self.key_parameter = key_parameter
         if self.key_parameter is not None:
@@ -327,8 +326,8 @@ class Transient(object):
                 self.description = description
             self.give_name()
 
-            for attr,val in kwargs:
-                setattr(self,attr,val)
+            for attr, val in kwargs:
+                setattr(self, attr, val)
 
             if not silent:
                 print('Imported {0} as {1}'.format(basename, self.name))
@@ -346,6 +345,7 @@ class Transient(object):
 
         """
         self.original_filepath = filepath.split('/')[-1]
+        print(self.original_filepath)
         data = spio.loadmat(filepath)
         try:  # if it finds the right data structure
             self.raw_time = data['Daten'][2]
@@ -429,7 +429,6 @@ class Transient(object):
         Metadata is obtained from get_metadata(), resulting in all non0 parameters available.
         """
         # ----------- metadata -----------
-
 
         # self.give_name()  # creates a name for the file
         print('Exporting {0}'.format(self.name))
@@ -599,7 +598,6 @@ class Transient(object):
             print('Normalization failed: invalid parameter name')
         logkey = 'Normalized by ' + parameter.replace('_', ' ')
         self.log_it(logkey)
-
 
     def quickplot(self, xlabel='Time [ps]', ylabel='Trace', fntsize=15, title='Transient', clear=False, raw=False):
         """Generates a quick simple plot with matplotlib """
@@ -871,7 +869,6 @@ class MultiTransients(object):
     def shift_time(self, tshift):
         for item in self.transients:
             item = item.shift_time(tshift)
-
 
             # %% plot functions
 
